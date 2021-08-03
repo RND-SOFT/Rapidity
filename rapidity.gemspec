@@ -12,19 +12,20 @@ Gem::Specification.new do |spec|
 
   spec.summary       = 'Simple distributed Redis-backed rate limiter'
   spec.description   = 'Simple distributed Redis-backed rate limiter'
+  spec.required_ruby_version = '>= 2.5.0'
 
   spec.files         = Dir['bin/*', 'lib/**/*', 'Gemfile*', 'LICENSE', 'README.md']
   spec.bindir        = 'bin'
   spec.require_paths = ['lib']
 
   spec.add_runtime_dependency 'activesupport'
-  spec.add_runtime_dependency 'redis'
   spec.add_runtime_dependency 'connection_pool'
+  spec.add_runtime_dependency 'redis'
 
-  spec.add_development_dependency 'timeouter'
   spec.add_development_dependency 'bundler', '~> 2.0'
   spec.add_development_dependency 'rspec', '~> 3.0'
-  
+  spec.add_development_dependency 'timeouter'
+
   spec.add_development_dependency 'awesome_print'
   spec.add_development_dependency 'bump'
   spec.add_development_dependency 'byebug'

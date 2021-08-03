@@ -122,3 +122,5 @@ passenger.*.pid.lock
 /yarn-error.log
 yarn-debug.log*
 .yarn-integrity
+rspec.xml
+.rspec_status

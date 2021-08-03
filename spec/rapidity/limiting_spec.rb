@@ -1,26 +1,25 @@
 require 'active_support/all'
 
 RSpec.describe Rapidity do
-
   # возьмем лимиты кратные документации
-  #в минуту - 110;     [60, 110]          - 1,8 в секунду
-  #в час 6 500;        [3600,6500]        - 1,8 в секунду
-  #в неделю - 650 000; [604800, 650000]   - 1 в секунду
-  #в месяц - 2 000 000.[2592000, 2000000] - 0,7 в секунду
+  # в минуту - 110;     [60, 110]          - 1,8 в секунду
+  # в час 6 500;        [3600,6500]        - 1,8 в секунду
+  # в неделю - 650 000; [604800, 650000]   - 1 в секунду
+  # в месяц - 2 000 000.[2592000, 2000000] - 0,7 в секунду
 
   LIMITS = [
-    [1,2],   # 2 за секунду    ~ 1,8 
-    [5,9],   # 9 за 5 секунд   ~ 1,8 
+    [1, 2],   # 2 за секунду    ~ 1,8
+    [5, 9],   # 9 за 5 секунд   ~ 1,8
     [20, 20], # 20 за 20 секунд ~ 1
-    [60, 42], # 42 за 60 секунд ~ 0,7
-  ]
+    [60, 42] # 42 за 60 секунд ~ 0,7
+  ].freeze
 
-  let(:name){"test#{rand(9999999999999)}"}
-  let(:pool){
+  let(:name){ "test#{rand(9_999_999_999_999)}" }
+  let(:pool) do
     ConnectionPool.new(size: 10) do
       Redis.new
     end
-  }
+  end
 
   def make_requests(limit:, interval:, duration:)
     @requests = []
@@ -38,9 +37,9 @@ RSpec.describe Rapidity do
     @requests
   end
 
-  def with_duration duration
+  def with_duration(duration)
     start = Process.clock_gettime(Process::CLOCK_MONOTONIC).to_f
-    while (Process.clock_gettime(Process::CLOCK_MONOTONIC).to_f - start) < duration do
+    while (Process.clock_gettime(Process::CLOCK_MONOTONIC).to_f - start) < duration
       yield
       sleep 0.5
     end
@@ -53,17 +52,17 @@ RSpec.describe Rapidity do
       window = requests.select do |r|
         r >= start && r < finish
       end
-      if window.size > count
-        msg = "Limit #{count}/#{interval} overcomed by #{window.size - count} at #{i} with time #{start}"
-        failed ||= msg
-        puts msg
-        return failed
-      end
+      next unless window.size > count
+
+      msg = "Limit #{count}/#{interval} overcomed by #{window.size - count} at #{i} with time #{start}"
+      failed ||= msg
+      puts msg
+      return failed
     end
     failed
   end
 
-  describe "Single limits" do
+  describe 'Single limits' do
     LIMITS.each do |(interval, count)|
       it "Limit #{count}/#{interval}" do
         requests = make_requests(limit: count, interval: interval, duration: (interval * 1.5).ceil)
@@ -90,9 +89,9 @@ RSpec.describe Rapidity do
     end
   end
 
-  it "Complex limits" do
+  it 'Complex limits' do
     limits = LIMITS.map do |interval, limit|
-      {interval: interval, threshold: limit}
+      { interval: interval, threshold: limit }
     end
 
     @requests = []
@@ -108,14 +107,14 @@ RSpec.describe Rapidity do
     end
   end
 
-  it "Parallel Complex limits" do
+  it 'Parallel Complex limits' do
     limits = LIMITS.map do |interval, limit|
-      {interval: interval, threshold: limit}
+      { interval: interval, threshold: limit }
     end
 
     @requests = []
 
-    threads = 4.times.map do 
+    threads = 4.times.map do
       Thread.new do
         start_publisher(@requests, limits, 90)
       end
@@ -133,19 +132,18 @@ RSpec.describe Rapidity do
   end
 
   5.times do |i|
-
     it "Highload randomize #{i}" do
       last_interval = 0
       last_limit = 0
       limits = 5.times.map do
         last_interval = last_interval + 1 + rand(5)
-        last_limit = last_limit + rand(1000)
-        {interval: last_interval, threshold: last_limit}
+        last_limit += rand(1000)
+        { interval: last_interval, threshold: last_limit }
       end
 
       @requests = []
 
-      threads = 10.times.map do 
+      threads = 10.times.map do
         Thread.new do
           start_publisher(@requests, limits, (last_interval * 1.5).ceil, delay: 0.05)
         end
@@ -161,5 +159,5 @@ RSpec.describe Rapidity do
       end
     end
   end
-
 end
+

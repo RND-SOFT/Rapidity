@@ -1,8 +1,9 @@
 RSpec.configure do |config|
   config.before(:suite) do
-    $logger = Logger.new(STDOUT).tap do |logger|
-      logger.progname = "rspec"
-      logger.level = "FATAL"
+    $logger = Logger.new($stdout).tap do |logger|
+      logger.progname = 'rspec'
+      logger.level = 'FATAL'
     end
   end
 end
+

@@ -5,10 +5,10 @@ require 'simplecov-console'
 require 'securerandom'
 require 'shoulda-matchers'
 
-# SimpleCov.formatter = SimpleCov::Formatter::MultiFormatter.new([
-#                                                                  SimpleCov::Formatter::HTMLFormatter, # for gitlab
-#                                                                  SimpleCov::Formatter::Console # for developers
-#                                                                ])
+SimpleCov.formatter = SimpleCov::Formatter::MultiFormatter.new([
+                                                                 SimpleCov::Formatter::HTMLFormatter, # for gitlab
+                                                                 SimpleCov::Formatter::Console # for developers
+                                                               ])
 
 SimpleCov.start
 

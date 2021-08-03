@@ -1,4 +1,3 @@
-
 require 'connection_pool'
 require 'redis'
 
@@ -14,12 +13,12 @@ module Rapidity
     # @params interval - interval in seconds to apply this limit
     # @params threshold - maximum available events for this interval
     # @params namespace - namespace for Redis keys
-    def initialize pool, name:, interval: 10, threshold: 10, namespace: 'rapidity'
+    def initialize(pool, name:, interval: 10, threshold: 10, namespace: 'rapidity')
       @pool = pool
       @interval = interval
       @threshold = threshold
       @name = name
-      
+
       @namespace = namespace
     end
 
@@ -49,7 +48,7 @@ module Rapidity
         end
       end
 
-      obtained = if taken < 0
+      if taken < 0
         overflow = taken.abs
         to_return = [count, overflow].min
 
@@ -64,9 +63,8 @@ module Rapidity
       else
         count
       end
-
-      return obtained
     end
 
   end
 end
+

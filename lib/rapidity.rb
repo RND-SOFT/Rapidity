@@ -5,7 +5,7 @@ require_relative 'rapidity/composer'
 
 module Rapidity
 
-  
+
 
 end
 
