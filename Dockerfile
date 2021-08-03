@@ -15,7 +15,7 @@ RUN set -ex \
   && apk add --no-cache build-base git curl
 
 ADD Gemfile Gemfile.lock *.gemspec /home/app/
-ADD lib/lusnoc/version.rb /home/app/lib/lusnoc/
+ADD lib/rapidity/version.rb /home/app/lib/rapidity/
 
 RUN set -ex \
   && gem install bundler && gem update bundler \
