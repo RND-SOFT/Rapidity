@@ -30,7 +30,7 @@ module Rapidity
 
       @limiters = @limits.map.each_with_index do |l, i|
         limit = OpenStruct.new(l)
-        ::Rapidity::Limiter.new(pool, name: "#{i}_#{name}_#{limit.limit}/#{limit.interval}",
+        ::Rapidity::Limiter.new(pool, name: "#{i}_#{name}_#{limit.threshold}/#{limit.interval}",
           interval: limit.interval, threshold: limit.threshold, namespace: namespace)
       end
     end

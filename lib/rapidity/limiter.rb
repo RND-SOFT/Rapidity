@@ -59,7 +59,7 @@ module Rapidity
           end
         end
 
-        count - overflow
+        count - to_return
       else
         count
       end

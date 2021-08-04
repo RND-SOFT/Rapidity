@@ -11,7 +11,7 @@ RSpec.describe Rapidity do
     [1, 2],   # 2 за секунду    ~ 1,8
     [5, 9],   # 9 за 5 секунд   ~ 1,8
     [20, 20], # 20 за 20 секунд ~ 1
-    [60, 42] # 42 за 60 секунд ~ 0,7
+    [60, 42]  # 42 за 60 секунд ~ 0,7
   ].freeze
 
   let(:name){ "test#{rand(9_999_999_999_999)}" }
@@ -21,6 +21,8 @@ RSpec.describe Rapidity do
     end
   end
 
+  MX = Monitor.new
+
   def make_requests(limit:, interval:, duration:)
     @requests = []
 
@@ -29,7 +31,9 @@ RSpec.describe Rapidity do
     with_duration(duration) do
       tokens = @limiter.obtain(10)
       tokens.times do
-        @requests.push Time.now
+        MX.synchronize do
+          @requests.push Time.now
+        end
         sleep 0.13
       end
     end
@@ -50,11 +54,13 @@ RSpec.describe Rapidity do
     requests.each_with_index do |start, i|
       finish = start + interval.seconds
       window = requests.select do |r|
-        r >= start && r < finish
+        r.to_f >= start.to_f && r.to_f < finish.to_f
       end
-      next unless window.size > count
+      
+      next if window.size <= (count + 1)
 
-      msg = "Limit #{count}/#{interval} overcomed by #{window.size - count} at #{i} with time #{start}"
+      msg = "Limit[#{count}/#{interval}] count: #{window.size} limit: #{count + 1} overcomed by #{window.size - (count + 1)} at #{i} with time #{start}-#{finish}"
+      ap requests
       failed ||= msg
       puts msg
       return failed
@@ -77,15 +83,21 @@ RSpec.describe Rapidity do
     end
   end
 
-  def start_publisher(requests, limits, duration, delay: 0.13)
+  def start_publisher(requests, limits, duration, delay: 0.13, debug: false)
     limiter = Rapidity::Composer.new(pool, name: name, limits: limits)
 
     with_duration(duration) do
+      
       tokens = limiter.obtain(1)
       tokens.times do
-        requests.push Time.now
+        c = MX.synchronize do
+          requests.push Time.now
+          requests.count
+        end
+        ap "[#{Thread.current.object_id}][#{Time.now}](#{c}) #{limiter.remains}" if debug
         sleep delay
       end
+      
     end
   end
 
@@ -143,7 +155,7 @@ RSpec.describe Rapidity do
 
       @requests = []
 
-      threads = 10.times.map do
+      threads = 5.times.map do
         Thread.new do
           start_publisher(@requests, limits, (last_interval * 1.5).ceil, delay: 0.05)
         end
