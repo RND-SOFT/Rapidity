@@ -9,7 +9,7 @@ RSpec.describe Rapidity::Limiter do
   let(:interval){ 1 }
   let(:pool) do
     ConnectionPool.new(size: 10) do
-      Redis.new
+      Redis.new(url: ENV.fetch('REDIS_URL', 'redis://127.0.0.1:6379'))
     end
   end
 

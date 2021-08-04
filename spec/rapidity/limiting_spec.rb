@@ -17,7 +17,7 @@ RSpec.describe Rapidity do
   let(:name){ "test#{rand(9_999_999_999_999)}" }
   let(:pool) do
     ConnectionPool.new(size: 10) do
-      Redis.new
+      Redis.new(url: ENV.fetch('REDIS_URL', 'redis://127.0.0.1:6379'))
     end
   end
 
