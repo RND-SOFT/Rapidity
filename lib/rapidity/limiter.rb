@@ -41,6 +41,8 @@ module Rapidity
     # Obtain values from counter
     # @return count succesfuly obtained send slots
     def obtain(count = 5)
+      count = count.abs
+
       _, taken = @pool.with do |conn|
         conn.multi do
           conn.set(key('remains'), threshold, ex: interval, nx: true)
