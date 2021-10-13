@@ -29,11 +29,11 @@ module Rapidity
     # Get current counter
     # @return remaining counter value
     def remains
-      _, result = @pool.with do |conn|
+      result = @pool.with do |conn|
         conn.multi do
           conn.set(key('remains'), threshold, ex: interval, nx: true)
           conn.get(key('remains'))
-        end
+        end[1] #=> conn.get(key('remains'))
       end
       result.to_i
     end
@@ -43,23 +43,26 @@ module Rapidity
     def obtain(count = 5)
       count = count.abs
 
-      _, taken = @pool.with do |conn|
+      taken = @pool.with do |conn|
         conn.multi do
           conn.set(key('remains'), threshold, ex: interval, nx: true)
           conn.decrby(key('remains'), count)
-        end
+        end[1] #=> conn.decrby(key('remains'), count)
       end
 
       if taken < 0
         overflow = taken.abs
         to_return = [count, overflow].min
 
-        @pool.with do |conn|
+        ttl = @pool.with do |conn|
           conn.multi do
             conn.set(key('remains'), threshold - to_return, ex: interval, nx: true)
             conn.incrby(key('remains'), to_return)
-          end
+            conn.ttl(key('remains'))
+          end[2] #=> conn.ttl(key('remains'))
         end
+
+        @pool.with {|c| c.expire(key('remains'), interval) } if ttl == -1 # reset if no ttl present
 
         count - to_return
       else

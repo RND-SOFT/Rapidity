@@ -56,7 +56,7 @@ RSpec.describe Rapidity do
       window = requests.select do |r|
         r.to_f >= start.to_f && r.to_f < finish.to_f
       end
-      
+
       next if window.size <= (count + 1)
 
       msg = "Limit[#{count}/#{interval}] count: #{window.size} limit: #{count + 1} overcomed by #{window.size - (count + 1)} at #{i} with time #{start}-#{finish}"
@@ -87,7 +87,7 @@ RSpec.describe Rapidity do
     limiter = Rapidity::Composer.new(pool, name: name, limits: limits)
 
     with_duration(duration) do
-      
+
       tokens = limiter.obtain(1)
       tokens.times do
         c = MX.synchronize do
@@ -97,7 +97,7 @@ RSpec.describe Rapidity do
         ap "[#{Thread.current.object_id}][#{Time.now}](#{c}) #{limiter.remains}" if debug
         sleep delay
       end
-      
+
     end
   end
 
