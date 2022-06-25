@@ -19,6 +19,17 @@ services:
     depends_on:
       - redis
     
-    
+  test-3.0:
+    build:
+      context: .
+      args:
+        RUBY_VERSION: 3.0
+    image: rapidity-tests:3.0
+    working_dir: /home/app
+    environment:
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      - redis
+
 
 
