@@ -1,5 +1,10 @@
 ENV['RAILS_ENV'] ||= 'test'
 
+
+require 'bundler'
+require 'bundler/setup'
+Bundler.require(:default, :development, :test)
+
 require 'simplecov'
 require 'simplecov-console'
 require 'securerandom'
@@ -11,10 +16,6 @@ SimpleCov.formatter = SimpleCov::Formatter::MultiFormatter.new([
                                                                ])
 
 SimpleCov.start
-
-require 'bundler'
-require 'bundler/setup'
-Bundler.require(:default, :development, :test)
 
 require 'rapidity'
 
