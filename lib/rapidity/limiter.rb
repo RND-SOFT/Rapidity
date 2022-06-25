@@ -6,6 +6,7 @@ module Rapidity
 
     attr_reader :pool, :name, :interval, :threshold, :namespace
 
+    LUA_SCRIPT_CODE = File.read(File.join(__dir__, 'limiter.lua'))
 
     # Convert message to given class
     # @params pool - inititalized Redis pool
@@ -30,12 +31,12 @@ module Rapidity
     # @return remaining counter value
     def remains
       results = @pool.with do |conn|
-        conn.multi do
-          conn.set(key('remains'), threshold, ex: interval, nx: true)
-          conn.get(key('remains'))
+        conn.multi do |pipeline|
+          pipeline.set(key('remains'), threshold, ex: interval, nx: true)
+          pipeline.get(key('remains'))
         end
       end
-      results[1].to_i #=> conn.get(key('remains'))
+      results[1].to_i #=> pipeline.get(key('remains'))
     end
 
     # Obtain values from counter
@@ -43,38 +44,41 @@ module Rapidity
     def obtain(count = 5)
       count = count.abs
 
-      results = @pool.with do |conn|
-        conn.multi do
-          conn.set(key('remains'), threshold, ex: interval, nx: true)
-          conn.decrby(key('remains'), count)
+      result = begin
+        @pool.with do |conn|
+          conn.evalsha(@script, keys: [key('remains')], argv: [threshold, interval, count])
+        end
+      rescue Redis::CommandError => e
+        if e.message.include?('NOSCRIPT')
+          # The Redis server has never seen this script before. Needs to run only once in the entire lifetime
+          # of the Redis server, until the script changes - in which case it will be loaded under a different SHA
+          ensure_script_loaded
+          retry
+        else
+          raise e
         end
       end
 
-      taken = results[1].to_i #=> conn.decrby(key('remains'), count)
+      taken = result.to_i
 
-      if taken < 0
-        overflow = taken.abs
-        to_return = [count, overflow].min
-
-        results = @pool.with do |conn|
-          conn.multi do
-            conn.set(key('remains'), threshold - to_return, ex: interval, nx: true)
-            conn.incrby(key('remains'), to_return)
-            conn.ttl(key('remains'))
-          end
+      if taken == 0
+        ttl = @pool.with do |conn|
+          conn.ttl(key('remains'))
         end
 
-        ttl = results[2].to_i #=> conn.ttl(key('remains'))
-
-        # reset if no ttl present
-        if ttl == -1 
+        # UNKNOWN BUG? reset if no ttl present. Many years ago once upon time we meet our key without TTL
+        if ttl == -1
           STDERR.puts "ERROR[#{Time.now}]: TTL for key #{key('remains').inspect} disappeared!"
-          @pool.with {|c| c.expire(key('remains'), interval) } 
+          @pool.with {|c| c.expire(key('remains'), interval) }
         end
+      end
 
-        count - to_return
-      else
-        count
+      taken
+    end
+
+    def ensure_script_loaded
+      @script = @pool.with do |conn|
+        conn.script(:load, LUA_SCRIPT_CODE)
       end
     end
 
