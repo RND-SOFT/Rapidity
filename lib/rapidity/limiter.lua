@@ -24,8 +24,8 @@ current = redis.call("DECRBY", key, count)
 if current < 0 then
   to_return = math.min(count, math.abs(current))
 
-  -- put back some value 
-  redis.call("INCRBY", key, to_return)
+  -- set 0 to current counter value
+  redis.call("SET", key, 0, 'KEEPTTL')
 
   -- return obtained part of requested count
   retval = count - to_return
