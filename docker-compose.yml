@@ -7,12 +7,12 @@ services:
     image: redis
     
 
-  test-2.6:
+  test-2.7:
     build:
       context: .
       args:
-        RUBY_VERSION: 2.6
-    image: rapidity-tests:2.6
+        RUBY_VERSION: 2.7
+    image: rapidity-tests:2.7
     working_dir: /home/app
     environment:
       REDIS_URL: redis://redis:6379
