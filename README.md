@@ -12,10 +12,12 @@
 Simple but fast Redis-backed distributed rate limiter. Allows you to specify time interval and count within to limit distributed operations.
 
 Features:
- 
- - extremly simple
- - safe
- - fast
+
+- extremly simple
+- free from race condition through LUA scripting
+- fast
+
+[Article(russian) about gem.](https://blog.rnds.pro/029-rapidity/?utm_source=github&utm_medium=repo&utm_campaign=rnds)
 
 ## Usage
 
@@ -75,18 +77,22 @@ loop do
     sleep 1
   end
 end
-
 ```
 
 ## Installation
 
 It's a gem:
+
 ```bash
   gem install rapidity
 ```
+
 There's also the wonders of [the Gemfile](http://bundler.io):
+
 ```ruby
   gem 'rapidity'
 ```
 
+## Special Thanks
 
+- [WeTransfer/prorate](https://github.com/WeTransfer/prorate) for LUA-examples

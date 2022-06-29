@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    rapidity (0.0.5)
+    rapidity (0.0.6)
       activesupport
       connection_pool
       redis
