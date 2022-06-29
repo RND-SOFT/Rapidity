@@ -24,28 +24,26 @@ RSpec.describe Rapidity do
   MX = Monitor.new
 
   def make_requests(limit:, interval:, duration:)
-    @requests = []
+    requests = []
 
     @limiter = Rapidity::Limiter.new(pool, name: name, threshold: limit, interval: interval)
 
     with_duration(duration) do
-      tokens = @limiter.obtain(10)
+      tokens, time = @limiter.obtain(10, with_time: true)
       tokens.times do
-        MX.synchronize do
-          @requests.push Time.now
-        end
+        requests.push time
         sleep 0.13
       end
     end
 
-    @requests
+    requests
   end
 
-  def with_duration(duration)
+  def with_duration(duration, delay: 0.5)
     start = Process.clock_gettime(Process::CLOCK_MONOTONIC).to_f
     while (Process.clock_gettime(Process::CLOCK_MONOTONIC).to_f - start) < duration
       yield
-      sleep 0.5
+      sleep delay
     end
   end
 
@@ -59,7 +57,7 @@ RSpec.describe Rapidity do
 
       next if window.size <= (count + 1)
 
-      msg = "Limit[#{count}/#{interval}] count: #{window.size} limit: #{count + 1} overcomed by #{window.size - (count + 1)} at #{i} with time #{start}-#{finish}"
+      msg = "Limit[#{count}/#{interval}] count: #{window.size} limit: #{count + 1} pos #{i} overcomed by #{window.size - (count + 1)} with time [#{start.strftime('%H:%M:%S.%L')}-#{finish.strftime('%H:%M:%S.%L')}]"
       ap requests
       failed ||= msg
       puts msg
@@ -83,22 +81,30 @@ RSpec.describe Rapidity do
     end
   end
 
-  def start_publisher(requests, limits, duration, delay: 0.13, debug: false)
+  def start_publisher(limits, duration, delay: 0.13, debug: false)
     limiter = Rapidity::Composer.new(pool, name: name, limits: limits)
+    requests = []
+    blocked = 0
 
-    with_duration(duration) do
+    ap "[#{Thread.current.object_id}][#{Time.now}](#{requests.count}) #{limits}" if debug
 
-      tokens = limiter.obtain(1)
+    with_duration(duration, delay: delay) do
+      tokens, time = limiter.obtain(1, with_time: true)
+
       tokens.times do
-        c = MX.synchronize do
-          requests.push Time.now
-          requests.count
-        end
-        ap "[#{Thread.current.object_id}][#{Time.now}](#{c}) #{limiter.remains}" if debug
-        sleep delay
+        #ap "[#{Thread.current.object_id}][#{Time.now}](#{requests.count}) #{limiter.remains}" if debug
+        requests.push time
       end
 
+
+      if tokens == 0
+        ap "BLOCKED [#{Thread.current.object_id}][#{Time.now}](#{requests.count}) #{limiter.remains}" if debug
+        blocked += 1
+        sleep rand(5) / 10.0
+      end
     end
+
+    [requests, blocked]
   end
 
   it 'Complex limits' do
@@ -106,15 +112,14 @@ RSpec.describe Rapidity do
       { interval: interval, threshold: limit }
     end
 
-    @requests = []
+    requests, blocked = start_publisher(limits, 90)
 
-    start_publisher(@requests, limits, 90)
-
-    expect(@requests).not_to be_empty
-    expect(@requests.count).to be >= 42
+    expect(requests).not_to be_empty
+    expect(requests.count).to be >= 42
+    expect(blocked).to be >= 0
 
     limits.each do |limit|
-      failure = check_limit(limit[:interval], limit[:threshold], @requests)
+      failure = check_limit(limit[:interval], limit[:threshold], requests)
       expect(failure).to be_nil, failure
     end
   end
@@ -124,49 +129,69 @@ RSpec.describe Rapidity do
       { interval: interval, threshold: limit }
     end
 
-    @requests = []
+    requests = []
+    blocked = 0
 
     threads = 4.times.map do
       Thread.new do
-        start_publisher(@requests, limits, 90)
+        start_publisher(limits, 90)
       end
     end
 
-    threads.each(&:join)
+    threads.map do |th|
+      r, b = th.value
+      requests += r
+      blocked += b
+    end
 
-    expect(@requests).not_to be_empty
-    expect(@requests.count).to be >= 42
+    requests.sort!
+
+    expect(requests).not_to be_empty
+    expect(blocked).to be >= 0
+    expect(requests.count).to be >= 42
 
     limits.each do |limit|
-      failure = check_limit(limit[:interval], limit[:threshold], @requests)
+      failure = check_limit(limit[:interval], limit[:threshold], requests)
       expect(failure).to be_nil, failure
     end
   end
 
   5.times do |i|
-    it "Highload randomize #{i}" do
-      last_interval = 0
-      last_limit = 0
-      limits = 5.times.map do
-        last_interval = last_interval + 1 + rand(5)
-        last_limit += rand(1000)
-        { interval: last_interval, threshold: last_limit }
-      end
+    static_last_interval = 0
+    static_last_limit = 0
+    static_limits = 5.times.map do
+      static_last_interval = static_last_interval + 1 + rand(5)
+      static_last_limit += rand(100)
+      { interval: static_last_interval, threshold: static_last_limit }
+    end
 
-      @requests = []
+
+    it "Highload randomize #{static_limits}" do
+      last_interval = static_last_interval
+      limits = static_limits
+
+      requests = []
+      blocked = 0
 
       threads = 5.times.map do
         Thread.new do
-          start_publisher(@requests, limits, (last_interval * 1.5).ceil, delay: 0.05)
+          start_publisher(limits, (last_interval * 1.5).ceil, delay: 0.01)
         end
       end
 
-      threads.each(&:join)
+      threads.map do |th|
+        r, b = th.value
+        requests += r
+        blocked += b
+      end
 
-      expect(@requests).not_to be_empty
+      requests.sort!
+
+      expect(requests).not_to be_empty
+      expect(blocked).to be >= 0
 
       limits.each do |limit|
-        failure = check_limit(limit[:interval], limit[:threshold], @requests)
+        failure = check_limit(limit[:interval], limit[:threshold], requests)
         expect(failure).to be_nil, failure
       end
     end

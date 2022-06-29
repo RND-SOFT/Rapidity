@@ -41,13 +41,18 @@ module Rapidity
       end
     end
 
-    def obtain(count = 5)
+    def obtain(count = 5, with_time: false)
+      time = nil
       @limiters.each do |limiter|
-        count = limiter.obtain(count)
+        count, time = limiter.obtain(count, with_time: with_time)
         break if count == 0
       end
 
-      count
+      if with_time
+        [count, time]
+      else
+        count
+      end
     end
 
   end

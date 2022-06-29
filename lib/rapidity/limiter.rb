@@ -40,8 +40,10 @@ module Rapidity
     end
 
     # Obtain values from counter
+    # @params count - try to obtain 'tokens'
+    # @params with_time - return or not Redis-service time at which request processed
     # @return count succesfuly obtained send slots
-    def obtain(count = 5)
+    def obtain(count = 5, with_time: false)
       count = count.abs
 
       result = begin
@@ -59,7 +61,8 @@ module Rapidity
         end
       end
 
-      taken = result.to_i
+      taken = result[0].to_i
+      time = Time.at(*result[1].map(&:to_i), :millisecond)
 
       if taken == 0
         ttl = @pool.with do |conn|
@@ -73,7 +76,11 @@ module Rapidity
         end
       end
 
-      taken
+      if with_time
+        [taken, time]
+      else
+        taken
+      end
     end
 
     def ensure_script_loaded

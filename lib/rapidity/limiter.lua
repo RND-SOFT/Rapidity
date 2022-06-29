@@ -1,6 +1,9 @@
 -- args: key, treshold, interval, count
 -- returns: obtained count.
 
+-- this is required to be able to use TIME and writes; basically it lifts the script into IO
+redis.replicate_commands()
+
 -- make some nicer looking variable names:
 local retval = nil
 
@@ -17,6 +20,7 @@ local count = tonumber(ARGV[3])
 local current = 0
 local to_return = 0
 
+local redis_time = redis.call("TIME") -- Array of [seconds, microseconds]
 redis.call("SET", key, treshold, "EX", interval, "NX")
 current = redis.call("DECRBY", key, count)
 
@@ -34,4 +38,4 @@ else
   retval = count
 end
 
-return retval
+return {retval, redis_time}
