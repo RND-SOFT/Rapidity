@@ -49,8 +49,37 @@ RSpec.describe Rapidity do
 
   def check_limit(interval, count, requests)
     failed = nil
+    finish = start = requests.first
+    limit = count# + 1
+
+    while requests.any? do
+      start = finish
+      finish = start + interval.seconds
+
+      window, requests = requests.partition do |r|
+        r.to_f >= start.to_f && r.to_f < finish.to_f
+      end
+
+
+      next if window.size <= limit
+
+      msg = "Limit[#{count}/#{interval}] count: #{window.size} limit: #{limit} overcomed by #{window.size - limit} with time [#{start.strftime('%H:%M:%S.%L')}-#{finish.strftime('%H:%M:%S.%L')}]"
+      ap window
+      ap "rest:"
+      ap requests
+      failed ||= msg
+      puts msg
+      return failed
+    end
+
+    failed
+  end
+
+  def check_limit_strict(interval, count, requests)
+    failed = nil
     requests.each_with_index do |start, i|
       finish = start + interval.seconds
+
       window = requests.select do |r|
         r.to_f >= start.to_f && r.to_f < finish.to_f
       end
@@ -70,6 +99,7 @@ RSpec.describe Rapidity do
     LIMITS.each do |(interval, count)|
       it "Limit #{count}/#{interval}" do
         requests = make_requests(limit: count, interval: interval, duration: (interval * 1.5).ceil)
+        requests.sort!
         expect(requests).not_to be_empty
 
         expect(requests.count).to be > count
@@ -113,6 +143,7 @@ RSpec.describe Rapidity do
     end
 
     requests, blocked = start_publisher(limits, 90)
+    requests.sort!
 
     expect(requests).not_to be_empty
     expect(requests.count).to be >= 42
@@ -156,43 +187,45 @@ RSpec.describe Rapidity do
     end
   end
 
-  5.times do |i|
-    static_last_interval = 0
-    static_last_limit = 0
-    static_limits = 5.times.map do
-      static_last_interval = static_last_interval + 1 + rand(5)
-      static_last_limit += rand(100)
-      { interval: static_last_interval, threshold: static_last_limit }
-    end
+  describe "Highload randomize" do
+    5.times do |i|
+      static_last_interval = 0
+      static_last_limit = 0
+      static_limits = 5.times.map do
+        static_last_interval = static_last_interval + 1 + rand(5)
+        static_last_limit += rand(100)
+        { interval: static_last_interval, threshold: static_last_limit }
+      end
 
 
-    it "Highload randomize #{static_limits}" do
-      last_interval = static_last_interval
-      limits = static_limits
+      it "No #{i} #{static_limits}" do
+        last_interval = static_last_interval
+        limits = static_limits
 
-      requests = []
-      blocked = 0
+        requests = []
+        blocked = 0
 
-      threads = 5.times.map do
-        Thread.new do
-          start_publisher(limits, (last_interval * 1.5).ceil, delay: 0.01)
+        threads = 5.times.map do
+          Thread.new do
+            start_publisher(limits, (last_interval * 1.5).ceil, delay: 0.01)
+          end
         end
-      end
 
-      threads.map do |th|
-        r, b = th.value
-        requests += r
-        blocked += b
-      end
+        threads.map do |th|
+          r, b = th.value
+          requests += r
+          blocked += b
+        end
 
-      requests.sort!
+        requests.sort!
 
-      expect(requests).not_to be_empty
-      expect(blocked).to be >= 0
+        expect(requests).not_to be_empty
+        expect(blocked).to be >= 0
 
-      limits.each do |limit|
-        failure = check_limit(limit[:interval], limit[:threshold], requests)
-        expect(failure).to be_nil, failure
+        limits.each do |limit|
+          failure = check_limit(limit[:interval], limit[:threshold], requests)
+          expect(failure).to be_nil, failure
+        end
       end
     end
   end
