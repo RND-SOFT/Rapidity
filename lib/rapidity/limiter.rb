@@ -83,6 +83,12 @@ module Rapidity
       end
     end
 
+    def force_ttl(ttl)
+      @pool.with do |conn|
+        conn.expire(key('remains'), ttl)
+      end
+    end
+
     def ensure_script_loaded
       @script = @pool.with do |conn|
         conn.script(:load, LUA_SCRIPT_CODE)
