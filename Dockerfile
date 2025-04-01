@@ -18,7 +18,7 @@ ADD Gemfile Gemfile.lock *.gemspec /home/app/
 ADD lib/rapidity/version.rb /home/app/lib/rapidity/
 
 RUN set -ex \
-  && gem install bundler && gem update bundler \
+  && gem install bundler:2.2.27 && gem update bundler \
   && bundle install --jobs=3 \
   && gem cleanup  \
   && rm -rf /tmp/* /var/tmp/* /usr/src/ruby /root/.gem /usr/local/bundle/cache

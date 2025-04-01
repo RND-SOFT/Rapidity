@@ -45,6 +45,8 @@ module Rapidity
     # @return count succesfuly obtained send slots
     def obtain(count = 5, with_time: false)
       count = count.abs
+      # нужно т.к. в новых версиях redis нельзя передавать значение отличное от типов String,Symbol,Integer,Float
+      ensure_script_loaded if @script.nil?
 
       result = begin
         @pool.with do |conn|
