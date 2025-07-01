@@ -37,7 +37,7 @@ ruby-3.0:
 
 
 build:
-  image: rnds/ruby:2.5-test
+  image: rnds/ruby:3.0-test
   stage: build
   variables:
     BUILDVERSION: ${CI_PIPELINE_ID}
