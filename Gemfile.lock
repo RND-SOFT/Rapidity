@@ -56,7 +56,10 @@ GEM
     path_expander (1.1.0)
     public_suffix (4.0.7)
     rainbow (3.1.1)
-    redis (4.7.0)
+    redis (5.4.0)
+      redis-client (>= 0.22.0)
+    redis-client (0.24.0)
+      connection_pool
     reek (6.1.1)
       kwalify (~> 0.7.0)
       parser (~> 3.1.0)
