@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    rapidity (0.0.6)
+    rapidity (0.0.7)
       activesupport
       connection_pool
       redis
@@ -141,4 +141,4 @@ DEPENDENCIES
   timeouter
 
 BUNDLED WITH
-   2.2.27
+   2.7.1

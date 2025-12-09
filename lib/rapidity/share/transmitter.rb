@@ -1,48 +1,28 @@
 module Rapidity
   module Share
-    class Trasmitter
-      
-      LUA_SCRIPTS = [:check, :spend]
-      
+    class Trasmitter < Base
+
+      LUA_SCRIPTS = [:acquire, :available_in, :try_acquire_with_retry]
+
       def initialize(*args, **kwargs)
         super(*args, **kwargs)
       end
 
-      def check(limits)
+      def acquire(limits, tokens: 1)
         wrap_executed_script do
           @pool.with do |conn|
             conn.with do |r|
-              r.evalsha(@lua_check, argv: [limits])
+              r.evalsha(@lua_acquire, keys: [*limits], argv: [tokens])
             end
           end
         end
       end
 
-      def dec_queue(limits)
+      def available_in(name, tokens: 1)
         wrap_executed_script do
           @pool.with do |conn|
             conn.with do |r|
-              r.evalsha(@lua_dec_queue, argv: [limits])
-            end
-          end
-        end
-      end
-
-      def inc_queue(limits)
-        wrap_executed_script do
-          @pool.with do |conn|
-            conn.with do |r|
-              r.evalsha(@lua_inc_queue, argv: [limits])
-            end
-          end
-        end
-      end
-
-      def spend(limits)
-        wrap_executed_script do
-          @pool.with do |conn|
-            conn.with do |r|
-              r.evalsha(@lua_spend, argv: [limits])
+              r.evalsha(@lua_available_in, argv: [limits])
             end
           end
         end
