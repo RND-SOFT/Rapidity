@@ -6,9 +6,7 @@ local exists = redis.call("EXISTS", key)
 local result = 0
 
 if exists ~= 1 then
-    return {
-        error = "key_not_found"
-    }
+  return {"error", "key_not_found"}
 end
 
 local queue = tonumber(redis.call("HGET", key, "queue")) or 0

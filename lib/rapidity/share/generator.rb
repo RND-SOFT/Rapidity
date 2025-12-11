@@ -8,24 +8,19 @@ module Rapidity
         super(*args, **kwargs)
       end
 
-      def init(params)
-        wrap_executed_script do
+      def init(limit)
+        data = wrap_executed_script do
           @pool.with do |conn|
             conn.with do |r|
-              params.each do |param|
-                limit = parse_limit(param)
-                r.evalsha(@lua_init,
-                  keys: [redis_key(limit.name)], 
-                  argv: [
-                    limit.count,
-                    limit.interval,
-                    limit.queue,
-                    @ttl
-                  ])
-              end
+              result = r.evalsha(@lua_init,
+                keys: [redis_key(limit.name)], 
+                argv: [*limit.base_params, @ttl])
             end
           end
         end
+        
+        limit = build_limit(data)
+        limit.valid? & limit.persisted?
       end
 
       def update(params)

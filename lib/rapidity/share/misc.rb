@@ -2,23 +2,48 @@ module Rapidity
   module Share
     class Limit
 
-      attr_reader :name, :count, :interval, :queue
+      attr_reader :name, :max_tokens, :tokens, :interval, :max_queue, :queue, :last_used, :rate
 
-      def initialize(name, count, interval, queue: 0)
+      def initialize(name, max_tokens, interval, queue: 0, validate: true, 
+          tokens: nil, max_queue: nil, last_used: nil, rate: nil)
         @name = name.to_s
-        @count = count.to_i
+        @max_tokens = max_tokens.to_i
+        @tokens = tokens.to_i
         @interval = interval.to_i
         @queue = queue.to_i
+        @max_queue = queue.to_i
+        @last_used = last_used.to_i
+        @rate = rate.to_i == 0 ? @max_tokens.to_f/@interval.to_f : rate
 
-        validate_parameters!
+        validate_parameters! if validate
       end
 
-      private
+      def self.from_hash(name, **kwargs)
+        max_tokens = kwargs.delete(:max_tokens)
+        interval = kwargs.delete(:interval)
+        self.new(name, max_tokens, interval, **kwargs)
+      end
 
+      def persisted?
+        @last_used > 0
+      end
+      
+      def valid?
+        @max_tokens > 0 && @interval > 0
+      end
+
+      def base_params
+        [max_tokens, interval, queue,]
+      end
+      
+      private
+      
       def validate_parameters!
-        raise ArgumentError, "count must be greater than 0" unless @count > 0
+        raise ArgumentError, "max_tokens must be greater than 0" unless 
         raise ArgumentError, "interval must be greater than 0" unless @interval > 0
       end
+
+    
     end
   end
 end

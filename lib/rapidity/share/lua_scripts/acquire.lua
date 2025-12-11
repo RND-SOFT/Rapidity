@@ -83,16 +83,15 @@ end
 
 local function process_all_limits(keys, requested, current_time)
   local limits = {}
-  local all_allowed = true
   
   for i = 1, #keys do
     local key = keys[i]
     local limit = Limit:new(key)
     if not limit.exists then
       return {
-        result = false,
-        error = "not_found", 
-        key = key
+        "result", "false",
+        "error", "key_not_found"
+        "key", "key"
       }
     end  
     
@@ -100,10 +99,10 @@ local function process_all_limits(keys, requested, current_time)
 
     if not limit:can_acquire(requested) then
        return {
-        result = false,
-        error = "not_limits",
-        tokens_available = limit.tokens,
-        key = key
+        "result", "false",
+        "error", "not_limits",
+        "tokens_available", limit.tokens,
+        "key", "key"
       } 
     end
     

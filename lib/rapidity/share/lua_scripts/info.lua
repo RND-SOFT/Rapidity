@@ -7,6 +7,4 @@ if exists ~= 1 then
   return {"error", "key_not_found"}
 end
 
-local result = tonumber(redis.call("HGET", key, "queue")) or 0
-
-return result
+return redis.call("HGETALL", key)

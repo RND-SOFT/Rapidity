@@ -4,22 +4,32 @@ module Rapidity
 
       LUA_SCRIPTS = []
       BASE_SCRIPTS = [:list, :info, :reset, :delete]
-      DEFAULT_KEY_TTL = 3.days
+      DEFAULT_KEY_TTL = 6000
 
       def initialize(pool, ttl: DEFAULT_KEY_TTL.to_i, key_builder: nil, namespace: 'rapidity', **kwargs)
         @pool = pool
         @ttl = ttl
         @key_builder = method(:default_build_redis_key) if key_builder.nil?
         @namespace = namespace
+        load_redis_scripts
       end
 
-      def list(pattern)
-        wrap_executed_script do
+      def list(namespace, max_count: 1000)
+        result = wrap_executed_script do
           @pool.with do |conn|
             conn.with do |r|
-              r.evalsha(@lua_list, argv: [pattern])
+              result = r.evalsha(@lua_list, argv: [namespace, max_count])
+              result = result.each_slice(2).to_h
             end
           end
+        end
+        
+        if result["count"] > 0
+          result["limits"].each do |data|
+            build_limit(data)
+          end
+        else
+          []
         end
       end
 
@@ -27,7 +37,7 @@ module Rapidity
         wrap_executed_script do
           @pool.with do |conn|
             conn.with do |r|
-              r.evalsha(@lua_reset, argv: [name])
+              r.evalsha(@lua_reset, keys: [name])
             end
           end
         end
@@ -37,7 +47,7 @@ module Rapidity
         wrap_executed_script do
           @pool.with do |conn|
             conn.with do |r|
-              r.evalsha(@lua_delete, argv: [name])
+              r.evalsha(@lua_delete, keys: [name])
             end
           end
         end
@@ -47,7 +57,7 @@ module Rapidity
         wrap_executed_script do
           @pool.with do |conn|
             conn.with do |r|
-              r.evalsha(@lua_info, argv: [name])
+              r.evalsha(@lua_info, keys: [name])
             end
           end
         end
@@ -84,9 +94,9 @@ module Rapidity
 
       def load_redis_scripts
         @pool.with do |conn|
-          (BASE_SCRIPTS + LUA_SCRIPTS).each do |script|
+          (BASE_SCRIPTS + self.class::LUA_SCRIPTS).each do |script|
             instance_variable_set("@lua_#{script}".to_sym,
-              conn.with {|r| r.script(:load, File.read(File.join(__dir__, 'lua_scripts', script))) }
+              conn.with {|r| r.script(:load, File.read(File.join(__dir__, 'lua_scripts', "#{script.to_s}.lua"))) }
             )
           end
         end
@@ -100,8 +110,18 @@ module Rapidity
         [@namespace, *key].join(':')
       end
 
+      def extract_limit_name(redis_key)
+        redis_key.split(':').last
+      end
+
       def parse_limit(param)
         Limiter.new(*param.split(":"))
+      end
+
+      def build_limit(redis_data)
+        name = extract_limit_name(redis_data[0])
+        params = redis_data[1].each_slice(2).to_h
+        Limit.from_hash(name, **params.symbolize_keys)
       end
 
     end
