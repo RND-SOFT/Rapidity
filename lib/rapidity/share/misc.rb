@@ -11,7 +11,7 @@ module Rapidity
         @tokens = tokens.to_i
         @interval = interval.to_i
         @queue = queue.to_i
-        @max_queue = queue.to_i
+        @max_queue = max_queue.to_i
         @last_used = last_used.to_i
         @rate = rate.to_i == 0 ? @max_tokens.to_f/@interval.to_f : rate
 
@@ -27,7 +27,7 @@ module Rapidity
       def persisted?
         @last_used > 0
       end
-      
+
       def valid?
         @max_tokens > 0 && @interval > 0
       end
@@ -35,15 +35,14 @@ module Rapidity
       def base_params
         [max_tokens, interval, queue,]
       end
-      
+
       private
-      
+
       def validate_parameters!
-        raise ArgumentError, "max_tokens must be greater than 0" unless 
+        raise ArgumentError, "max_tokens must be greater than 0" unless @max_tokens > 0
         raise ArgumentError, "interval must be greater than 0" unless @interval > 0
       end
 
-    
     end
   end
 end

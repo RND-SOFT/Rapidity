@@ -15,17 +15,17 @@ module Rapidity
       end
 
       def list(namespace, max_count: 1000)
-        result = wrap_executed_script do
+        response = wrap_executed_script do
           @pool.with do |conn|
             conn.with do |r|
-              result = r.evalsha(@lua_list, argv: [namespace, max_count])
-              result = result.each_slice(2).to_h
+              response = r.evalsha(@lua_list, argv: [namespace, max_count])
+              response = response.each_slice(2).to_h
             end
           end
         end
-        
-        if result["count"] > 0
-          result["limits"].each do |data|
+
+        if response["count"] > 0
+          response["limits"].each do |data|
             build_limit(data)
           end
         else
@@ -54,13 +54,49 @@ module Rapidity
       end
 
       def info(name)
-        wrap_executed_script do
+        response = wrap_executed_script do
           @pool.with do |conn|
             conn.with do |r|
               r.evalsha(@lua_info, keys: [name])
             end
           end
         end
+
+        response = response.each_slice(2).to_h
+        if response["result"] == "true"
+          limit = build_limit(response["info"])
+          OpenStruct.new(
+            success: true,
+            limit: limit
+          )
+        else
+          OpenStruct.new(
+            success: false,
+            **response
+          )
+        end
+      end
+
+      def redis_key(key)
+        @key_builder.call(key)
+      end
+
+      def default_build_redis_key(*key)
+        [@namespace, *key].join(':')
+      end
+
+      def extract_limit_name(redis_key)
+        redis_key.split(':').last
+      end
+
+      def parse_limit(param)
+        Limiter.new(*param.split(":"))
+      end
+
+      def build_limit(redis_data)
+        name = extract_limit_name(redis_data[0])
+        params = redis_data[1].each_slice(2).to_h
+        Limit.from_hash(name, **params.symbolize_keys)
       end
 
       private 
@@ -100,28 +136,6 @@ module Rapidity
             )
           end
         end
-      end
-
-      def redis_key(key)
-        @key_builder.call(key)
-      end
-
-      def default_build_redis_key(*key)
-        [@namespace, *key].join(':')
-      end
-
-      def extract_limit_name(redis_key)
-        redis_key.split(':').last
-      end
-
-      def parse_limit(param)
-        Limiter.new(*param.split(":"))
-      end
-
-      def build_limit(redis_data)
-        name = extract_limit_name(redis_data[0])
-        params = redis_data[1].each_slice(2).to_h
-        Limit.from_hash(name, **params.symbolize_keys)
       end
 
     end

@@ -4,7 +4,7 @@ local key = KEYS[1]
 local exists = redis.call("EXISTS", key)
 
 if exists ~= 1 then
-  return {"error", "key_not_found"}
+  return {"result", "false", "error", "key_not_found"}
 end
 
-return redis.call("HGETALL", key)
+return {"result", "true", "info", {key, redis.call("HGETALL", key)}}

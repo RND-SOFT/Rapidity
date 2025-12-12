@@ -82,6 +82,22 @@ function Limit:acquire(requested)
 end
 
 local function process_all_limits(keys, requested, current_time)
+  if requested <= 0 then 
+    return {
+        "result", "false",
+        "error", "limits not requested",
+        "keys", keys
+      } 
+  end
+  
+  if #keys == 0 then 
+    return {
+        "result", "false",
+        "error", "no keys passed",
+        "keys", keys
+      } 
+  end
+  
   local limits = {}
   
   for i = 1, #keys do
@@ -90,8 +106,8 @@ local function process_all_limits(keys, requested, current_time)
     if not limit.exists then
       return {
         "result", "false",
-        "error", "key_not_found"
-        "key", "key"
+        "error", "key_not_found",
+        "key", key
       }
     end  
     
@@ -102,8 +118,8 @@ local function process_all_limits(keys, requested, current_time)
         "result", "false",
         "error", "not_limits",
         "tokens_available", limit.tokens,
-        "key", "key"
-      } 
+        "key", key
+      }
     end
     
     table.insert(limits, limit)
@@ -115,7 +131,10 @@ local function process_all_limits(keys, requested, current_time)
     limit:save()
   end
   
-  return { result = true }
+  return {
+    "result", "true",
+    "key", "key"
+  }
 end
 
 

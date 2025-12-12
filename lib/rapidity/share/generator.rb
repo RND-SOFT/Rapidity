@@ -12,13 +12,13 @@ module Rapidity
         data = wrap_executed_script do
           @pool.with do |conn|
             conn.with do |r|
-              result = r.evalsha(@lua_init,
+              r.evalsha(@lua_init,
                 keys: [redis_key(limit.name)], 
                 argv: [*limit.base_params, @ttl])
             end
           end
         end
-        
+
         limit = build_limit(data)
         limit.valid? & limit.persisted?
       end
@@ -26,7 +26,7 @@ module Rapidity
       def update(params)
         init(params)
       end
-      
+
       def check_queue(name)
         wrap_executed_script do
           @pool.with do |conn|
@@ -46,7 +46,7 @@ module Rapidity
           end
         end
       end
-      
+
     end
   end
 end
