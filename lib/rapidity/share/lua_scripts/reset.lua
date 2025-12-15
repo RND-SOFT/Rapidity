@@ -6,7 +6,7 @@ local exists = redis.call("EXISTS", key)
 local current_time = redis.call("TIME")[1]
 
 if exists ~= 1 then
-  return {"error", "key_not_found"}
+  return {"result", "false", "error", "key_not_found"}
 end
 
 local limit = redis.call("HMGET", key,
@@ -24,4 +24,4 @@ redis.call("HSET", key,
   "rate", max_tokens / interval,
   "last_used", current_time
 )
-return {"Ok"}
+return {"result", "true", "info", {key, redis.call("HGETALL", key)}}

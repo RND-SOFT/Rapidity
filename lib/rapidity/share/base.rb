@@ -35,23 +35,50 @@ module Rapidity
 
       def reset(limit_or_str)
         name = redis_key(limit_or_str.is_a?(Limit) ? limit_or_str.name : limit_or_str)
-        wrap_executed_script do
+        response = wrap_executed_script do
           @pool.with do |conn|
             conn.with do |r|
               r.evalsha(@lua_reset, keys: [name])
             end
           end
         end
+
+        response = response.each_slice(2).to_h
+        if response["result"] == "true"
+          limit = build_limit(response["info"])
+          OpenStruct.new(
+            success: true,
+            limit: limit
+          )
+        else
+          OpenStruct.new(
+            success: false,
+            **response
+          )
+        end
       end
 
       def delete(limit_or_str)
         name = redis_key(limit_or_str.is_a?(Limit) ? limit_or_str.name : limit_or_str)
-        wrap_executed_script do
+        response = wrap_executed_script do
           @pool.with do |conn|
             conn.with do |r|
               r.evalsha(@lua_delete, keys: [name])
             end
           end
+        end
+
+        response = response.each_slice(2).to_h
+        if response["result"] == "true"
+          OpenStruct.new(
+            success: true,
+            **response
+          )
+        else
+          OpenStruct.new(
+            success: false,
+            **response
+          )
         end
       end
 
