@@ -6,7 +6,7 @@ module Rapidity
       BASE_SCRIPTS = [:list, :info, :reset, :delete]
       DEFAULT_KEY_TTL = 6000
 
-      def initialize(pool, ttl: DEFAULT_KEY_TTL.to_i, key_builder: nil, namespace: 'rapidity', **kwargs)
+      def initialize(pool, ttl: DEFAULT_KEY_TTL.to_i, key_builder: nil, namespace: nil, **kwargs)
         @pool = pool
         @ttl = ttl
         @key_builder = method(:default_build_redis_key) if key_builder.nil?
@@ -14,11 +14,11 @@ module Rapidity
         load_redis_scripts
       end
 
-      def list(namespace, max_count: 1000)
+      def list(match_pattern, max_count: 1000)
         response = wrap_executed_script do
           @pool.with do |conn|
             conn.with do |r|
-              response = r.evalsha(@lua_list, argv: [namespace, max_count])
+              response = r.evalsha(@lua_list, argv: [match_pattern, max_count])
               response = response.each_slice(2).to_h
             end
           end
@@ -33,7 +33,8 @@ module Rapidity
         end
       end
 
-      def reset(name)
+      def reset(limit_or_str)
+        name = redis_key(limit_or_str.is_a?(Limit) ? limit_or_str.name : limit_or_str)
         wrap_executed_script do
           @pool.with do |conn|
             conn.with do |r|
@@ -43,7 +44,8 @@ module Rapidity
         end
       end
 
-      def delete(name)
+      def delete(limit_or_str)
+        name = redis_key(limit_or_str.is_a?(Limit) ? limit_or_str.name : limit_or_str)
         wrap_executed_script do
           @pool.with do |conn|
             conn.with do |r|
@@ -53,7 +55,8 @@ module Rapidity
         end
       end
 
-      def info(name)
+      def info(limit_or_str)
+        name = redis_key(limit_or_str.is_a?(Limit) ? limit_or_str.name : limit_or_str)
         response = wrap_executed_script do
           @pool.with do |conn|
             conn.with do |r|
@@ -78,7 +81,11 @@ module Rapidity
       end
 
       def redis_key(key)
-        @key_builder.call(key)
+        if @namespace
+          @key_builder.call(key)
+        else
+          key
+        end
       end
 
       def default_build_redis_key(*key)

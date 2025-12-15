@@ -27,7 +27,8 @@ module Rapidity
         init(params)
       end
 
-      def check_queue(name)
+      def check_queue(limit_or_str)
+        name = redis_key(limit_or_str.is_a?(Limit) ? limit_or_str.name : limit_or_str)
         wrap_executed_script do
           @pool.with do |conn|
             conn.with do |r|
@@ -37,7 +38,8 @@ module Rapidity
         end
       end
 
-      def acquire_queue(name, count: 1)
+      def acquire_queue(limit_or_str, count: 1)
+        name = redis_key(limit_or_str.is_a?(Limit) ? limit_or_str.name : limit_or_str)
         wrap_executed_script do
           @pool.with do |conn|
             conn.with do |r|

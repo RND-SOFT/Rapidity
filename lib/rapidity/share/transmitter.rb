@@ -8,7 +8,13 @@ module Rapidity
         super(*args, **kwargs)
       end
 
-      def acquire(limits, tokens: 1)
+      def acquire(list_limits_or_str, tokens: 1)
+        limits = if list_limits_or_str[0].is_a?(Limit)
+          list_limits_or_str.map {|it| redis_key(it.name)}
+        else
+          list_limits_or_str.map {|it| redis_key(it)}
+        end
+
         response = wrap_executed_script do
           @pool.with do |conn|
             conn.with do |r|
@@ -25,11 +31,12 @@ module Rapidity
         )
       end
 
-      def available_in(name, tokens: 1)
+      def available_in(limit_or_str, tokens: 1)
+        name = redis_key(limit_or_str.is_a?(Limit) ? limit_or_str.name : limit_or_str)
         wrap_executed_script do
           @pool.with do |conn|
             conn.with do |r|
-              r.evalsha(@lua_available_in, argv: [limits])
+              r.evalsha(@lua_available_in, keys: [name], argv: [tokens])
             end
           end
         end
