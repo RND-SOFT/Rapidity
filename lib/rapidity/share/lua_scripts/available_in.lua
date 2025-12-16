@@ -1,7 +1,7 @@
 redis.replicate_commands()
 
 local keys = KEYS
-local requested = tonumber(ARGV[1]) or 0
+local tokens_needed = tonumber(ARGV[1]) or 0
 local current_time = redis.call("TIME")[1]
 
 local Limit = {}
@@ -54,33 +54,22 @@ function Limit:update(current_time)
   return self
 end
 
-function Limit:save()
-  if not self.exists then return end
-  
-  redis.call("HMSET", self.key,
-      "tokens", self.tokens, 
-      "last_used", self.last_used
-  )
-end
-
-function Limit:can_acquire(requested)
-  return self.exists and self.tokens >= requested
-end
-
-function Limit:acquire(requested)
-  if not self:can_acquire(requested) then
-    return false
+function Limit:available_in(tokens_needed, current_time)
+  if tokens_needed <= self.tokens then
+    return 0
+  else
+    local deficit_tokens = tokens_needed - self.tokens
+    local deficit_time_per_token = math.floor(1/self.rate)
+    local time_needed = deficit_time_per_token * deficit_tokens
+    return time_needed
   end
-    
-  self.tokens = self.tokens - requested
-  return true
 end
 
-local function process_all_limits(keys, requested, current_time)
-  if requested <= 0 then 
+local function process_all_limits(keys, tokens_needed, current_time)
+  if tokens_needed <= 0 then 
     return {
         "result", "false",
-        "error", "limits not requested",
+        "error", "tokens not requested",
         "keys", keys
       } 
   end
@@ -94,7 +83,6 @@ local function process_all_limits(keys, requested, current_time)
   end
   
   local limits = {}
-  
   for i = 1, #keys do
     local key = keys[i]
     local limit = Limit:new(key)
@@ -107,30 +95,13 @@ local function process_all_limits(keys, requested, current_time)
     end  
     
     limit:update(current_time)
-
-    if not limit:can_acquire(requested) then
-       return {
-        "result", "false",
-        "error", "not_limits",
-        "tokens_available", limit.tokens,
-        "key", key
-      }
-    end
-    
-    table.insert(limits, limit)
-  end
-  
-  for i=1, #limits do
-    local limit = limits[i]
-    limit:acquire(requested)
-    limit:save()
+    table.insert(limits, limit:available_in(tokens_needed, current_time))
   end
   
   return {
     "result", "true",
-    "key", "key"
+    "available_in", math.max(unpack(limits))
   }
 end
 
-
-return process_all_limits(keys, requested, current_time)
+return process_all_limits(keys, tokens_needed, current_time)

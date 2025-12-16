@@ -13,7 +13,7 @@ module Rapidity
           @pool.with do |conn|
             conn.with do |r|
               r.evalsha(@lua_init,
-                keys: [redis_key(limit.name)], 
+                keys: [limit.name], 
                 argv: [*limit.base_params, @ttl])
             end
           end
@@ -28,7 +28,7 @@ module Rapidity
       end
 
       def check_queue(limit_or_str)
-        name = redis_key(limit_or_str.is_a?(Limit) ? limit_or_str.name : limit_or_str)
+        name = limit_or_str.is_a?(Limit) ? limit_or_str.name : limit_or_str
         response = wrap_executed_script do
           @pool.with do |conn|
             conn.with do |r|
@@ -52,7 +52,7 @@ module Rapidity
       end
 
       def acquire_queue(limit_or_str, count: 1)
-        name = redis_key(limit_or_str.is_a?(Limit) ? limit_or_str.name : limit_or_str)
+        name = limit_or_str.is_a?(Limit) ? limit_or_str.name : limit_or_str
         response = wrap_executed_script do
           @pool.with do |conn|
             conn.with do |r|

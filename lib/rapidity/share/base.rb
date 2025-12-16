@@ -6,11 +6,11 @@ module Rapidity
       BASE_SCRIPTS = [:list, :info, :reset, :delete]
       DEFAULT_KEY_TTL = 6000
 
-      def initialize(pool, ttl: DEFAULT_KEY_TTL.to_i, key_builder: nil, namespace: nil, **kwargs)
+      def initialize(pool, ttl: DEFAULT_KEY_TTL.to_i, logger: nil)
         @pool = pool
         @ttl = ttl
-        @key_builder = method(:default_build_redis_key) if key_builder.nil?
-        @namespace = namespace
+        @logger = logger || Logger.new(STDOUT)
+        @logger.level = Logger::DEBUG
         load_redis_scripts
       end
 
@@ -34,7 +34,7 @@ module Rapidity
       end
 
       def reset(limit_or_str)
-        name = redis_key(limit_or_str.is_a?(Limit) ? limit_or_str.name : limit_or_str)
+        name = limit_or_str.is_a?(Limit) ? limit_or_str.name : limit_or_str
         response = wrap_executed_script do
           @pool.with do |conn|
             conn.with do |r|
@@ -59,7 +59,7 @@ module Rapidity
       end
 
       def delete(limit_or_str)
-        name = redis_key(limit_or_str.is_a?(Limit) ? limit_or_str.name : limit_or_str)
+        name = limit_or_str.is_a?(Limit) ? limit_or_str.name : limit_or_str
         response = wrap_executed_script do
           @pool.with do |conn|
             conn.with do |r|
@@ -69,21 +69,15 @@ module Rapidity
         end
 
         response = response.each_slice(2).to_h
-        if response["result"] == "true"
-          OpenStruct.new(
-            success: true,
-            **response
-          )
-        else
-          OpenStruct.new(
-            success: false,
-            **response
-          )
-        end
+        success = response["result"] == "true"
+        OpenStruct.new(
+          success: success,
+          **response
+        )
       end
 
       def info(limit_or_str)
-        name = redis_key(limit_or_str.is_a?(Limit) ? limit_or_str.name : limit_or_str)
+        name = limit_or_str.is_a?(Limit) ? limit_or_str.name : limit_or_str
         response = wrap_executed_script do
           @pool.with do |conn|
             conn.with do |r|
@@ -107,52 +101,34 @@ module Rapidity
         end
       end
 
-      def redis_key(key)
-        if @namespace
-          @key_builder.call(key)
-        else
-          key
-        end
-      end
-
-      def default_build_redis_key(*key)
-        [@namespace, *key].join(':')
-      end
-
-      def extract_limit_name(redis_key)
-        redis_key.split(':').last
-      end
-
-      def parse_limit(param)
-        Limiter.new(*param.split(":"))
-      end
-
       def build_limit(redis_data)
-        name = extract_limit_name(redis_data[0])
+        name = redis_data[0]
         params = redis_data[1].each_slice(2).to_h
         Limit.from_hash(name, **params.symbolize_keys)
       end
 
       private 
 
-      def wrap_executed_script(&block)
-        max_retries = 3
+      def wrap_executed_script(max_retries: 5, delay: 0.1, &block)
         retries_count = 0
 
         yield block
       rescue  Redis::CannotConnectError, Redis::TimeoutError, Errno::ECONNREFUSED => e
         retries_count += 1 
-        if retries_count >= max_retries
-          logger.error("Redis is not available: #{e.message}")
-          nil
-        else
+        if retries_count < max_retries
+          @logger.warn("Redis connection error: #{e.message}.")
+          sleep(delay)
           retry
+        else
+          @logger.error("Redis is not available: #{e.message}")
+          {"result", "false", "error", e.message}
         end
       rescue ::Redis::CommandError => e
+        byebug
         if e.message.include?('NOSCRIPT')
           retries_count += 1
-          if retries_count >= max_retries
-            logger.warn("Get not script error from redis: #{e.message}. Reload lua scripts")
+          if retries_count < max_retries
+            @logger.warn("Get not script error from redis: #{e.message}. Reload lua scripts")
             # существует вероятность что сервер мог быть перезагружен
             # и нужно заново загрузить скрипты
             load_redis_scripts

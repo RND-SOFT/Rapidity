@@ -4,9 +4,13 @@ module Rapidity
 
       attr_reader :name, :max_tokens, :tokens, :interval, :max_queue, :queue, :last_used, :rate
 
-      def initialize(name, max_tokens, interval, queue: nil, validate: true, 
-          tokens: nil, max_queue: 0, last_used: nil, rate: nil)
-        @name = name.to_s
+      def initialize(name, max_tokens, interval,
+                     namespace: nil, tokens: nil,
+                     last_used: nil, rate: nil,
+                     queue: nil, max_queue: nil, 
+                     validate: true)
+        @name = namespace.to_s.empty? ? name : [namespace, name].join(':')
+        @namespace = namespace.to_s
         @max_tokens = max_tokens.to_i
         @tokens = tokens.to_i
         @interval = interval.to_i
@@ -33,7 +37,7 @@ module Rapidity
       end
 
       def base_params
-        [max_tokens, interval, max_queue,]
+        [max_tokens, interval, max_queue]
       end
 
       private
