@@ -1,6 +1,7 @@
 redis.replicate_commands()
 
 local key = KEYS[1]
+local key_ttl = tonumber(ARGV[1])
 
 local exists = redis.call("EXISTS", key)
 local current_time = redis.call("TIME")[1]
@@ -24,4 +25,6 @@ redis.call("HSET", key,
   "rate", max_tokens / interval,
   "last_used", current_time
 )
+
+redis.call("EXPIRE", key, key_ttl, "GT")
 return {"result", "true", "info", {key, redis.call("HGETALL", key)}}

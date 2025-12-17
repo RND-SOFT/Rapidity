@@ -2,6 +2,7 @@ redis.replicate_commands()
 
 local keys = KEYS
 local tokens_needed = tonumber(ARGV[1]) or 0
+local key_ttl = tonumber(ARGV[2]) or 0
 local current_time = redis.call("TIME")[1]
 
 local Limit = {}
@@ -95,6 +96,7 @@ local function process_all_limits(keys, tokens_needed, current_time)
     end  
     
     limit:update(current_time)
+    redis.call("EXPIRE", limit.key, key_ttl, "GT")
     table.insert(limits, limit:available_in(tokens_needed, current_time))
   end
   

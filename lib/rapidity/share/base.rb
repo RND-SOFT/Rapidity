@@ -33,12 +33,12 @@ module Rapidity
         end
       end
 
-      def reset(limit_or_str)
+      def reset(limit_or_str, ttl: @ttl)
         name = limit_or_str.is_a?(Limit) ? limit_or_str.name : limit_or_str
         response = wrap_executed_script do
           @pool.with do |conn|
             conn.with do |r|
-              r.evalsha(@lua_reset, keys: [name])
+              r.evalsha(@lua_reset, keys: [name], argv: [ttl])
             end
           end
         end
@@ -76,12 +76,12 @@ module Rapidity
         )
       end
 
-      def info(limit_or_str)
+      def info(limit_or_str, ttl: @ttl)
         name = limit_or_str.is_a?(Limit) ? limit_or_str.name : limit_or_str
         response = wrap_executed_script do
           @pool.with do |conn|
             conn.with do |r|
-              r.evalsha(@lua_info, keys: [name])
+              r.evalsha(@lua_info, keys: [name], argv: [ttl])
             end
           end
         end
@@ -107,36 +107,38 @@ module Rapidity
         Limit.from_hash(name, **params.symbolize_keys)
       end
 
-      private 
-
       def wrap_executed_script(max_retries: 5, delay: 0.1, &block)
         retries_count = 0
-
-        yield block
-      rescue  Redis::CannotConnectError, Redis::TimeoutError, Errno::ECONNREFUSED => e
-        retries_count += 1 
-        if retries_count < max_retries
-          @logger.warn("Redis connection error: #{e.message}.")
-          sleep(delay)
-          retry
-        else
-          @logger.error("Redis is not available: #{e.message}")
-          {"result", "false", "error", e.message}
-        end
-      rescue ::Redis::CommandError => e
-        byebug
-        if e.message.include?('NOSCRIPT')
-          retries_count += 1
+        begin
+          yield block
+        rescue  Redis::CannotConnectError, Redis::TimeoutError, Errno::ECONNREFUSED => e
+          retries_count += 1 
           if retries_count < max_retries
-            @logger.warn("Get not script error from redis: #{e.message}. Reload lua scripts")
-            # существует вероятность что сервер мог быть перезагружен
-            # и нужно заново загрузить скрипты
-            load_redis_scripts
+            @logger.warn("Redis connection error: #{e.message}.")
+            sleep(delay)
             retry
+          else
+            @logger.error("Redis is not available: #{e.message}")
+            # raise e
+            ["result", "false", "error", e.message]
           end
+        rescue ::Redis::CommandError => e
+          if e.message.include?('NOSCRIPT')
+            retries_count += 1
+            if retries_count < max_retries
+              @logger.warn("Get not script error from redis: #{e.message}. Reload lua scripts")
+              # существует вероятность что сервер мог быть перезагружен
+              # и нужно заново загрузить скрипты
+              load_redis_scripts
+              retry
+            end
+          end
+          # raise e
+          ["result", "false", "error", e.message]
         end
-        raise e
       end
+
+      private
 
       def load_redis_scripts
         @pool.with do |conn|

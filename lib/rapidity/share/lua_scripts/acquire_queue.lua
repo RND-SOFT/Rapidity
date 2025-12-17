@@ -1,7 +1,9 @@
 redis.replicate_commands()
 
 local key = KEYS[1]
-local requested = tonumber(ARGV[1])
+local requested = tonumber(ARGV[1]) or 0
+local key_ttl = tonumber(ARGV[2]) or 0
+
 local exists = redis.call("EXISTS", key)
 local tokens = 0
 
@@ -25,5 +27,6 @@ else
 end
 
 redis.call("HSET", key, "queue", queue)
+redis.call("EXPIRE", key, key_ttl, "GT")
 
 return {"result", "true", "tokens", tokens, "queue", queue}

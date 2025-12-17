@@ -2,6 +2,8 @@ redis.replicate_commands()
 
 local keys = KEYS
 local requested = tonumber(ARGV[1]) or 0
+local key_ttl = tonumber(ARGV[2]) or 0
+
 local current_time = redis.call("TIME")[1]
 
 local Limit = {}
@@ -124,6 +126,7 @@ local function process_all_limits(keys, requested, current_time)
     local limit = limits[i]
     limit:acquire(requested)
     limit:save()
+    redis.call("EXPIRE", limit.key, key_ttl, "GT")
   end
   
   return {

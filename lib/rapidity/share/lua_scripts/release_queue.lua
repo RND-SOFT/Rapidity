@@ -2,6 +2,8 @@ redis.replicate_commands()
 
 local key = KEYS[1]
 local released = tonumber(ARGV[1])
+local key_ttl = tonumber(ARGV[2]) or 0
+
 local exists = redis.call("EXISTS", key)
 
 if exists ~= 1 then
@@ -14,5 +16,6 @@ local max_queue = tonumber(redis.call("HGET", key, "max_queue")) or 0
 local new_queue = math.min(max_queue, queue + released)
 
 redis.call("HSET", key, "queue", new_queue)
+redis.call("EXPIRE", key, key_ttl, "GT")
 
 return {"result", "true", "queue", new_queue}

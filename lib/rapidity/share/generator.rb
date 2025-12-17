@@ -8,13 +8,13 @@ module Rapidity
         super(*args, **kwargs)
       end
 
-      def init(limit)
+      def init(limit, ttl: @ttl)
         data = wrap_executed_script do
           @pool.with do |conn|
             conn.with do |r|
               r.evalsha(@lua_init,
                 keys: [limit.name], 
-                argv: [*limit.base_params, @ttl])
+                argv: [*limit.base_params, ttl])
             end
           end
         end
@@ -23,16 +23,16 @@ module Rapidity
         limit.valid? & limit.persisted?
       end
 
-      def update(params)
-        init(params)
+      def update(*, **)
+        init(*, **)
       end
 
-      def check_queue(limit_or_str)
+      def check_queue(limit_or_str, ttl: @ttl)
         name = limit_or_str.is_a?(Limit) ? limit_or_str.name : limit_or_str
         response = wrap_executed_script do
           @pool.with do |conn|
             conn.with do |r|
-              r.evalsha(@lua_check_queue, keys: [name])
+              r.evalsha(@lua_check_queue, keys: [name, ttl])
             end
           end
         end
@@ -51,12 +51,12 @@ module Rapidity
         end
       end
 
-      def acquire_queue(limit_or_str, count: 1)
+      def acquire_queue(limit_or_str, count: 1, ttl: @ttl)
         name = limit_or_str.is_a?(Limit) ? limit_or_str.name : limit_or_str
         response = wrap_executed_script do
           @pool.with do |conn|
             conn.with do |r|
-              r.evalsha(@lua_acquire_queue, keys: [name], argv: [count])
+              r.evalsha(@lua_acquire_queue, keys: [name], argv: [count, ttl])
             end
           end
         end
