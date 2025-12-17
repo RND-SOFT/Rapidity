@@ -16,7 +16,7 @@ RSpec.describe Rapidity::Share::Base do
 
   context "#noscript" do
     it 'reload scripts' do
-      limit = Rapidity::Share::Limit.new('limit_1', 20, 100, namespace:)
+      limit = Rapidity::Share::Limit.new('limit_1', 20, 100, namespace: namespace)
       generator.init(limit)
       result = base.info(limit)
       expect(result.success).to eq(true)
@@ -32,7 +32,7 @@ RSpec.describe Rapidity::Share::Base do
     end
 
     it 'reload scripts not not exceed max attempts' do
-      limit = Rapidity::Share::Limit.new('limit_1', 20, 100, namespace:)
+      limit = Rapidity::Share::Limit.new('limit_1', 20, 100, namespace: namespace)
       generator.init(limit)
       result = base.info(limit)
       expect(result.success).to eq(true)

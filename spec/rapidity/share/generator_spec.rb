@@ -7,7 +7,7 @@ RSpec.describe Rapidity::Share::Generator do
   let(:name){ "limit" }
   let(:interval){ 600 }
   let(:queue){ 20 }
-  let(:limit) { Rapidity::Share::Limit.new(name, count, interval, queue:, namespace:) }
+  let(:limit) { Rapidity::Share::Limit.new(name, count, interval, queue: queue, namespace: namespace) }
   
   let(:pool) do
     ConnectionPool.new(size: 10) do
@@ -25,9 +25,9 @@ RSpec.describe Rapidity::Share::Generator do
 
   describe '#list' do
     before do
-      generator.init(Rapidity::Share::Limit.new('limit_1', 20, 100, namespace:))
-      generator.init(Rapidity::Share::Limit.new('limit_2', 30, 200, namespace:))
-      generator.init(Rapidity::Share::Limit.new('limit_3', 40, 300, namespace:))
+      generator.init(Rapidity::Share::Limit.new('limit_1', 20, 100, namespace: namespace))
+      generator.init(Rapidity::Share::Limit.new('limit_2', 30, 200, namespace: namespace))
+      generator.init(Rapidity::Share::Limit.new('limit_3', 40, 300, namespace: namespace))
     end
     
     it 'return limits list' do
@@ -42,7 +42,7 @@ RSpec.describe Rapidity::Share::Generator do
 
   describe '#check_queue' do
     it 'queue' do
-      limit = Rapidity::Share::Limit.new('limit_1', 20, 100, namespace:)
+      limit = Rapidity::Share::Limit.new('limit_1', 20, 100, namespace: namespace)
       generator.init(limit)
 
       result = generator.check_queue(limit)
@@ -57,7 +57,7 @@ RSpec.describe Rapidity::Share::Generator do
   end
 
   context "base" do
-    let (:limit) {Rapidity::Share::Limit.new('limit_1', 20, 100, max_queue: 20, namespace:)}
+    let (:limit) {Rapidity::Share::Limit.new('limit_1', 20, 100, max_queue: 20, namespace: namespace)}
     
     describe '#reset' do
       it 'reset' do

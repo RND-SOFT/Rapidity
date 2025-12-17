@@ -16,7 +16,7 @@ RSpec.describe Rapidity::Share::Transmitter do
 
   describe '#acquire' do
     context 'single limit' do
-      let!(:limit){Rapidity::Share::Limit.new('limit', 1, 60, namespace:)}
+      let!(:limit){Rapidity::Share::Limit.new('limit', 1, 60, namespace: namespace)}
       
       before do
         generator.init(limit)
@@ -58,9 +58,9 @@ RSpec.describe Rapidity::Share::Transmitter do
 
     context 'multiple limits' do
       before do
-        generator.init(Rapidity::Share::Limit.new('limit_1', 1, 60, namespace:))
-        generator.init(Rapidity::Share::Limit.new('limit_2', 5, 30, namespace:))
-        generator.init(Rapidity::Share::Limit.new('limit_3', 2, 120, namespace:))
+        generator.init(Rapidity::Share::Limit.new('limit_1', 1, 60, namespace: namespace))
+        generator.init(Rapidity::Share::Limit.new('limit_2', 5, 30, namespace: namespace))
+        generator.init(Rapidity::Share::Limit.new('limit_3', 2, 120, namespace: namespace))
       end
 
       let(:limit_names) {['limit_1', 'limit_2', 'limit_3'].map{|it| [namespace, it].join(':')}}
@@ -104,7 +104,7 @@ RSpec.describe Rapidity::Share::Transmitter do
     end
 
     context 'token restore' do
-       let!(:limit){Rapidity::Share::Limit.new('limit', 10, 60, namespace:)}
+       let!(:limit){Rapidity::Share::Limit.new('limit', 10, 60, namespace: namespace)}
       
       before do
         generator.init(limit)
@@ -161,9 +161,9 @@ RSpec.describe Rapidity::Share::Transmitter do
 
     context 'exceptions' do
       before do
-        generator.init(Rapidity::Share::Limit.new('limit_1', 1, 60, namespace:))
-        generator.init(Rapidity::Share::Limit.new('limit_2', 5, 30, namespace:))
-        generator.init(Rapidity::Share::Limit.new('limit_3', 2, 120, namespace:))
+        generator.init(Rapidity::Share::Limit.new('limit_1', 1, 60, namespace: namespace))
+        generator.init(Rapidity::Share::Limit.new('limit_2', 5, 30, namespace: namespace))
+        generator.init(Rapidity::Share::Limit.new('limit_3', 2, 120, namespace: namespace))
       end
 
       let(:limit_names) { ['limit_1', 'limit_2', 'limit_3'].map{|it| [namespace, it].join(':')}}
@@ -191,7 +191,7 @@ RSpec.describe Rapidity::Share::Transmitter do
 
   describe '#available_in' do
     context 'single limit' do
-      let!(:limit){Rapidity::Share::Limit.new('limit', 10, 10, namespace:)}
+      let!(:limit){Rapidity::Share::Limit.new('limit', 10, 10, namespace: namespace)}
         
       before do
         generator.init(limit)
@@ -220,9 +220,9 @@ RSpec.describe Rapidity::Share::Transmitter do
 
     context 'multiple limit' do
       before do
-        generator.init(Rapidity::Share::Limit.new('limit_1', 10, 10, namespace:))
-        generator.init(Rapidity::Share::Limit.new('limit_2', 10, 10, namespace:))
-        generator.init(Rapidity::Share::Limit.new('limit_3', 10, 10, namespace:))
+        generator.init(Rapidity::Share::Limit.new('limit_1', 10, 10, namespace: namespace))
+        generator.init(Rapidity::Share::Limit.new('limit_2', 10, 10, namespace: namespace))
+        generator.init(Rapidity::Share::Limit.new('limit_3', 10, 10, namespace: namespace))
       end
 
       let(:limit_names) { ['limit_1', 'limit_2', 'limit_3'].map{|it| [namespace, it].join(':')}}
@@ -255,7 +255,7 @@ RSpec.describe Rapidity::Share::Transmitter do
   end
   
   describe '#release_queue' do
-    let!(:limit){Rapidity::Share::Limit.new('limit', 10, 60, max_queue: 10, namespace:)}
+    let!(:limit){Rapidity::Share::Limit.new('limit', 10, 60, max_queue: 10, namespace: namespace)}
       
     before do
       generator.init(limit)
