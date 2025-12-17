@@ -4,7 +4,7 @@ stages:
   - deploy
 
 .test:
-  image: rnds/ruby:2.5-test
+  image: rnds/ruby:3.0-test
   stage: tests
   variables:
     COMPOSE_PROJECT_NAME: rapidity_${CI_PIPELINE_ID}_${CI_JOB_ID}
