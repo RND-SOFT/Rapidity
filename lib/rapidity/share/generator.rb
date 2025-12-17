@@ -23,8 +23,8 @@ module Rapidity
         limit.valid? & limit.persisted?
       end
 
-      def update(*, **)
-        init(*, **)
+      def update(*args, **kwargs)
+        init(*args, **kwargs)
       end
 
       def check_queue(limit_or_str, ttl: @ttl)
