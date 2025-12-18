@@ -84,22 +84,16 @@ If your message producer and message sender are independent services, and you wa
 
 ```mermaid
 flowchart LR
-    subgraph System["your System"]
-    subgraph Producer["message producer service"]
-    g(generator)
-    end
+    G(generator)
     B[Redis]
     A@{ shape: h-cyl, label: "message broker" }
-    subgraph Sender["message sender service"]
-    t(transmitter)
-    end
-    end
+    T(transmitter)
     E["external system with request limiting"]
-    g-- init limit -->B
-    B-- acquire limit -->t
-    g-- message [limit1, limit2] -->A
-    A--->t
-    t-- limited request -->E
+    G-- init limit -->B
+    B-- acquire limit -->T
+    G-- message [limit1, limit2] -->A
+    A--->T
+    T-- limited request -->E
 ```
 
 ### Optional Queue Management with Feedback Loop
