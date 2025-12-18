@@ -86,7 +86,7 @@ If your message producer and message sender are independent services, and you wa
 flowchart LR
     G(generator)
     B[Redis]
-    A@{ shape: h-cyl, label: "message broker" }
+    A(["message broker"])
     T(transmitter)
     E["external system with request limiting"]
     G-- init limit -->B
