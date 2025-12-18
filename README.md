@@ -83,20 +83,23 @@ end
 If your message producer and message sender are independent services, and you want the sender to be agnostic of the business rules for rate limiting, use the classes in the Share module. The producer is responsible for initializing and configuring the rate limits (e.g., token bucket) with the correct business parameters in Redis. The sender then only consumes these pre-defined limits without knowing the underlying rules.
 
 ```mermaid
-flowchart TB
-    c1-->a2
-    subgraph one
-    a1-->a2
+flowchart LR
+    subgraph System["your System"]
+    subgraph Producer["message producer service"]
+    g(generator)
     end
-    subgraph two
-    b1-->b2
+    B[Redis]
+    A@{ shape: das, label: "message broker" }
+    subgraph Sender["message sender service"]
+    t(transmitter)
     end
-    subgraph three
-    c1-->c2
     end
-    one --> two
-    three --> two
-    two --> c2
+    E["external system with request limitng"]
+    g--init limit-->B
+    t--acquire limit-->B
+    g--message [limit1, limit2]-->A
+    A-->t
+    t--limited request-->E
 ```
 
 ## Installation
