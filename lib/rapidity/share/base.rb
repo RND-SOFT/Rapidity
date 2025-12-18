@@ -14,16 +14,17 @@ module Rapidity
         load_redis_scripts
       end
 
+      # Returns a list of limits matching the pattern
+      #
+      # @param match_pattern [String] pattern for key matching
+      # @param max_count [Integer] maximum number of records to return
+      # @return [Array<Limit>] array of Limit objects or empty array
       def list(match_pattern, max_count: 1000)
-        response = wrap_executed_script do
-          @pool.with do |conn|
-            conn.with do |r|
-              response = r.evalsha(@lua_list, argv: [match_pattern, max_count])
-              response = response.each_slice(2).to_h
-            end
-          end
+        response = wrap_executed_script do |r|
+          r.evalsha(@lua_list, argv: [match_pattern, max_count])
         end
 
+        response = response.each_slice(2).to_h
         if response["count"] > 0
           response["limits"].each do |data|
             build_limit(data)
@@ -33,72 +34,59 @@ module Rapidity
         end
       end
 
+      # Resets limit values
+      #
+      # @param limit_or_str [Limit, String] limit object or its name
+      # @param ttl [Integer] key TTL after reset
+      # @return [OpenStruct] operation result with success and limit fields
       def reset(limit_or_str, ttl: @ttl)
-        name = limit_or_str.is_a?(Limit) ? limit_or_str.name : limit_or_str
-        response = wrap_executed_script do
-          @pool.with do |conn|
-            conn.with do |r|
-              r.evalsha(@lua_reset, keys: [name], argv: [ttl])
-            end
-          end
+        response = wrap_executed_script do |r|
+          r.evalsha(@lua_reset, keys: [get_name(limit_or_str)], argv: [ttl])
         end
 
-        response = response.each_slice(2).to_h
-        if response["result"] == "true"
-          limit = build_limit(response["info"])
-          OpenStruct.new(
-            success: true,
-            limit: limit
-          )
-        else
-          OpenStruct.new(
-            success: false,
-            **response
-          )
-        end
+        handle_response(response, with_limit: true)
       end
 
+      # Deletes a limit from Redis
+      #
+      # @param limit_or_str [Limit, String] limit object or its name
+      # @return [OpenStruct] operation result with success field
       def delete(limit_or_str)
-        name = limit_or_str.is_a?(Limit) ? limit_or_str.name : limit_or_str
-        response = wrap_executed_script do
-          @pool.with do |conn|
-            conn.with do |r|
-              r.evalsha(@lua_delete, keys: [name])
-            end
-          end
+        response = wrap_executed_script do |r|
+          r.evalsha(@lua_delete, keys: [get_name(limit_or_str)])
         end
 
+        handle_response(response)
+      end
+
+      # Retrieves information about a limit
+      #
+      # @param limit_or_str [Limit, String] limit object or its name
+      # @param ttl [Integer] key TTL
+      # @return [OpenStruct] operation result with success and limit fields
+      def info(limit_or_str, ttl: @ttl)
+        response = wrap_executed_script do |r|
+          r.evalsha(@lua_info, keys: [get_name(limit_or_str)], argv: [ttl])
+        end
+
+        handle_response(response, with_limit: true)
+      end
+
+      # Processes Redis response and converts it to OpenStruct
+      #
+      # @param response [Array] raw Redis response
+      # @param with_limit [Boolean] whether to include limit object in result
+      # @return [OpenStruct] structured response
+      def handle_response(response, with_limit: false)
         response = response.each_slice(2).to_h
         success = response["result"] == "true"
-        OpenStruct.new(
-          success: success,
-          **response
-        )
+        result_data = { success: success, **response }
+        result_data[:limit] = build_limit(response["info"]) if success && with_limit
+        OpenStruct.new(result_data)
       end
 
-      def info(limit_or_str, ttl: @ttl)
-        name = limit_or_str.is_a?(Limit) ? limit_or_str.name : limit_or_str
-        response = wrap_executed_script do
-          @pool.with do |conn|
-            conn.with do |r|
-              r.evalsha(@lua_info, keys: [name], argv: [ttl])
-            end
-          end
-        end
-
-        response = response.each_slice(2).to_h
-        if response["result"] == "true"
-          limit = build_limit(response["info"])
-          OpenStruct.new(
-            success: true,
-            limit: limit
-          )
-        else
-          OpenStruct.new(
-            success: false,
-            **response
-          )
-        end
+      def get_name(limit_or_str)
+        limit_or_str.is_a?(Limit) ? limit_or_str.name : limit_or_str
       end
 
       def build_limit(redis_data)
@@ -107,12 +95,22 @@ module Rapidity
         Limit.from_hash(name, **params.symbolize_keys)
       end
 
+      # Wrapper for Redis script execution with retry logic
+      #
+      # @param max_retries [Integer] maximum number of retry attempts
+      # @param delay [Float] delay between retries in seconds
+      # @param block [Proc] block containing Redis operations
+      # @return [Array] Redis response or error response
       def wrap_executed_script(max_retries: 5, delay: 0.1, &block)
         retries_count = 0
         begin
-          yield block
+          @pool.with do |conn|
+            conn.with do |r|
+              yield r
+            end
+          end
         rescue  Redis::CannotConnectError, Redis::TimeoutError, Errno::ECONNREFUSED => e
-          retries_count += 1 
+          retries_count += 1
           if retries_count < max_retries
             @logger.warn("Redis connection error: #{e.message}.")
             sleep(delay)
@@ -140,6 +138,9 @@ module Rapidity
 
       private
 
+      # Loads Lua scripts into Redis
+      #
+      # @return [void]
       def load_redis_scripts
         @pool.with do |conn|
           (BASE_SCRIPTS + self.class::LUA_SCRIPTS).each do |script|

@@ -89,18 +89,43 @@ flowchart LR
     g(generator)
     end
     B[Redis]
-    A@{ shape: das, label: "message broker" }
+    A@{ shape: h-cyl, label: "message broker" }
     subgraph Sender["message sender service"]
     t(transmitter)
     end
     end
-    E["external system with request limitng"]
-    g--init limit-->B
-    t--acquire limit-->B
-    g--message [limit1, limit2]-->A
-    A-->t
-    t--limited request-->E
+    E["external system with request limiting"]
+    g-- init limit -->B
+    B-- acquire limit -->t
+    g-- message [limit1, limit2] -->A
+    A--->t
+    t-- limited request -->E
 ```
+
+### Optional Queue Management with Feedback Loop
+Beyond basic rate limiting, the Share module offers **optional queue management capabilities** that enable sophisticated **feedback-driven flow control**. This feature allows systems to handle temporary load spikes more gracefully while maintaining communication between producers and consumers.
+
+### Workflow with Code Examples
+1. Initializing Limits and Optional Queues (Producer Side)
+The message producer initializes rate limits with specific business rules. Queues can be added for handling traffic spikes.
+
+```ruby
+@pool = ConnectionPool.new(size: 5, timeout: 5) { Redis.new }
+@generator = Rapidity::Share::Generator.new(@pool)
+api_day_limit = Limit.new("day_limit", max_tokens: 1000, period: 86400, namespace: 'api_v2')
+api_hour_limit = Limit.new("hour_limit", max_tokens: 100, period: 3600, max_queue: 100, namespace: 'api_v2')
+@generator.init(api_day_limit)
+@generator.init(api_hour_limit)
+```
+2. Each message is tagged with the limits it should consume when processed.
+3. Messages flow through your message broker to the sender service.
+4. The message sender attempts to acquire tokens before sending. If unavailable, it waits according to the token bucket algorithm.
+```ruby
+@pool = ConnectionPool.new(size: 5, timeout: 5) { Redis.new }
+@transmitter = Rapidity::Share::Transmitter.new(@pool)
+@transmitter.acquire(message['api_v2:day_limit', 'api_v2:hour_limit'], tokens: 1)
+```
+5. For queue-backed limits, senders can release tokens back to the queue to signal capacity availability.
 
 ## Installation
 

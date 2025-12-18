@@ -20,7 +20,7 @@ RSpec.describe Rapidity::Share::Base do
       generator.init(limit)
       result = base.info(limit)
       expect(result.success).to eq(true)
-      
+
       pool.with do |conn|
         conn.with do |r|
           r.script(:flush, 'SYNC')
@@ -36,8 +36,8 @@ RSpec.describe Rapidity::Share::Base do
       generator.init(limit)
       result = base.info(limit)
       expect(result.success).to eq(true)
-      
-      response = base.wrap_executed_script do
+
+      response = base.wrap_executed_script do |r|
         pool.with do |conn|
           conn.with do |r|
             r.script(:flush, 'SYNC')
