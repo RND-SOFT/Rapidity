@@ -82,6 +82,7 @@ end
 ## Share module expansion
 If your message producer and message sender are independent services, and you want the sender to be agnostic of the business rules for rate limiting, use the classes in the Share module. The producer is responsible for initializing and configuring the rate limits (e.g., token bucket) with the correct business parameters in Redis. The sender then only consumes these pre-defined limits without knowing the underlying rules.
 
+```mermaid
 flowchart TB
     c1-->a2
     subgraph one
@@ -96,7 +97,7 @@ flowchart TB
     one --> two
     three --> two
     two --> c2
-
+```
 
 ## Installation
 
