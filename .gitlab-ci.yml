@@ -61,7 +61,7 @@ build:
     - master
 
 pushgem:
-  image: rnds/ruby:2.5-test
+  image: rnds/ruby:3.0-test
   stage: deploy
   script:
     - mkdir -p ~/.gem
@@ -73,7 +73,7 @@ pushgem:
     - master
 
 badges:
-  image: rnds/ruby:2.5-test
+  image: rnds/ruby:3.0-test
   stage: deploy
   allow_failure: true
   variables:
