@@ -1,15 +1,15 @@
 require 'redis'
-require_relative 'rapidity/version'
-require_relative 'rapidity/limiter'
-require_relative 'rapidity/composer'
-require_relative 'rapidity/share/base'
-require_relative 'rapidity/share/generator'
-require_relative 'rapidity/share/transmitter'
-require_relative 'rapidity/share/misc'
 
 module Rapidity
-
-
-
+  autoload :VERSION, 'rapidity/version'
+  autoload :Limiter, 'rapidity/limiter'
+  autoload :Composer, 'rapidity/composer'
+  
+  module Share
+    autoload :Base, 'rapidity/share/base'
+    autoload :Generator, 'rapidity/share/generator'
+    autoload :Transmitter, 'rapidity/share/transmitter'
+    autoload :Limit, 'rapidity/share/misc'
+  end
 end
 

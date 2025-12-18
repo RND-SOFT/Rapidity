@@ -1,23 +1,27 @@
+require 'bundler/setup'
 ENV['RAILS_ENV'] ||= 'test'
 
+if ENV['COVERAGE']
+  require 'simplecov'
+  require 'simplecov-console'
+  require 'simplecov-cobertura'
 
-require 'bundler'
-require 'bundler/setup'
-Bundler.require(:default, :development, :test)
+  SimpleCov.start do
+    SimpleCov.formatter = SimpleCov::Formatter::MultiFormatter.new([
+                                                                 SimpleCov::Formatter::HTMLFormatter, # for gitlab
+                                                                 SimpleCov::Formatter::Console, # for developers
+                                                                 SimpleCov::Formatter::CoberturaFormatter
+                                                               ])
+    add_filter '/spec/'
+    track_files 'lib/**/*.rb'
+  end
+end
 
-require 'simplecov'
-require 'simplecov-console'
+require 'rapidity'
 require 'securerandom'
 require 'shoulda-matchers'
 
-SimpleCov.formatter = SimpleCov::Formatter::MultiFormatter.new([
-                                                                 SimpleCov::Formatter::HTMLFormatter, # for gitlab
-                                                                 SimpleCov::Formatter::Console # for developers
-                                                               ])
-
-SimpleCov.start
-
-require 'rapidity'
+Bundler.require(:default, :development, :test)
 
 $root = File.join(File.dirname(__dir__), 'spec')
 
