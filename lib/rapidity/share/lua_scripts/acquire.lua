@@ -79,20 +79,20 @@ function Limit:acquire(requested)
 end
 
 local function process_all_limits(keys, requested, current_time)
-  if requested <= 0 then 
+  if requested <= 0 then
     return {
         "result", "false",
-        "error", "limits not requested",
-        "keys", keys
-      } 
+        "retryable", "false",
+        "error", "limits not requested"
+      }
   end
-  
-  if #keys == 0 then 
+
+  if #keys == 0 then
     return {
         "result", "false",
-        "error", "no keys passed",
-        "keys", keys
-      } 
+        "retryable", "false",
+        "error", "no keys passed"
+      }
   end
   
   local limits = {}
@@ -103,16 +103,18 @@ local function process_all_limits(keys, requested, current_time)
     if not limit.exists then
       return {
         "result", "false",
+        "retryable", "false",
         "error", "key_not_found",
         "key", key
       }
-    end  
-    
+    end
+
     limit:update(current_time)
 
     if not limit:can_acquire(requested) then
-       return {
+      return {
         "result", "false",
+        "retryable", "true",
         "error", "not_limits",
         "tokens_available", limit.tokens,
         "key", key

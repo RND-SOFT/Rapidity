@@ -1,6 +1,6 @@
 module Rapidity
   module Share
-    class Generator < Base
+    class Producer < Base
 
       LUA_SCRIPTS = [:init, :check_queue, :acquire_queue]
 
@@ -22,31 +22,31 @@ module Rapidity
         end
 
         limit = build_limit(result)
-        limit.valid? & limit.persisted?
+        limit.valid? && limit.persisted?
       end
 
       def update(*args, **kwargs)
         init(*args, **kwargs)
       end
 
-      # Checks the current state of the rate limit queue
+      # Checks the current state of the rate limit semaphore
       #
-      # Retrieves information about the queue status for a specific limit
+      # Retrieves information about the semaphore status for a specific limit
       #
       # @param limit_or_str [Limit, String] limit object or its name
-      # @param ttl [Integer] time-to-live for the queue check
-      # @return [OpenStruct] queue status information
+      # @param ttl [Integer] time-to-live for the semaphore check
+      # @return [OpenStruct] semaphore status information
       def check_queue(limit_or_str, ttl: @ttl)
         response = wrap_executed_script do |r|
-          r.evalsha(@lua_check_queue, keys: [get_name(limit_or_str), ttl])
+          r.evalsha(@lua_check_queue, keys: [get_name(limit_or_str)], argv: [ttl])
         end
 
         handle_response(response)
       end
 
-      # Acquires tokens from the rate limit queue
+      # Acquires tokens from the rate limit semaphore
       #
-      # Attempts to acquire the specified number of tokens from the queue.
+      # Attempts to acquire the specified number of tokens from the semaphore.
       # If tokens are available, they are reserved for the caller.
       #
       # @param limit_or_str [Limit, String] limit object or its name

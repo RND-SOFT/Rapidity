@@ -7,7 +7,7 @@ RSpec.describe Rapidity::Share::Base do
       Redis.new(url: ENV.fetch('REDIS_URL', 'redis://127.0.0.1:6379'))
     end
   end
-  let(:generator){ Rapidity::Share::Generator.new(pool) }
+  let(:producer){ Rapidity::Share::Producer.new(pool) }
   subject(:base){ described_class.new(pool) }
 
   before(:each) do
@@ -17,7 +17,7 @@ RSpec.describe Rapidity::Share::Base do
   context "#noscript" do
     it 'reload scripts' do
       limit = Rapidity::Share::Limit.new('limit_1', 20, 100, namespace: namespace)
-      generator.init(limit)
+      producer.init(limit)
       result = base.info(limit)
       expect(result.success).to eq(true)
 
@@ -33,7 +33,7 @@ RSpec.describe Rapidity::Share::Base do
 
     it 'reload scripts not not exceed max attempts' do
       limit = Rapidity::Share::Limit.new('limit_1', 20, 100, namespace: namespace)
-      generator.init(limit)
+      producer.init(limit)
       result = base.info(limit)
       expect(result.success).to eq(true)
 

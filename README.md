@@ -84,10 +84,10 @@ If your message producer and message sender are independent services, and you wa
 
 ```mermaid
 flowchart LR
-    G(generator)
+    G(producer)
     B[Redis]
     A(["message broker"])
-    T(transmitter)
+    T(sender)
     E["external system with request limiting"]
     G-- init limit -->B
     B-- acquire limit -->T
@@ -105,21 +105,21 @@ The message producer initializes rate limits with specific business rules. Queue
 
 ```ruby
 @pool = ConnectionPool.new(size: 5, timeout: 5) { Redis.new }
-@generator = Rapidity::Share::Generator.new(@pool)
+@producer = Rapidity::Share::Producer.new(@pool)
 api_day_limit = Limit.new("day_limit", max_tokens: 1000, period: 86400, namespace: 'api_v2')
 api_hour_limit = Limit.new("hour_limit", max_tokens: 100, period: 3600, max_queue: 100, namespace: 'api_v2')
-@generator.init(api_day_limit)
-@generator.init(api_hour_limit)
+@producer.init(api_day_limit)
+@producer.init(api_hour_limit)
 ```
 2. Each message is tagged with the limits it should consume when processed.
 3. Messages flow through your message broker to the sender service.
 4. The message sender attempts to acquire tokens before sending. If unavailable, it waits according to the token bucket algorithm.
 ```ruby
 @pool = ConnectionPool.new(size: 5, timeout: 5) { Redis.new }
-@transmitter = Rapidity::Share::Transmitter.new(@pool)
-@transmitter.acquire(message['api_v2:day_limit', 'api_v2:hour_limit'], tokens: 1)
+@sender = Rapidity::Share::Producer.new(@pool)
+@sender.acquire(message['api_v2:day_limit', 'api_v2:hour_limit'], tokens: 1)
 ```
-5. For queue-backed limits, senders can release tokens back to the queue to signal capacity availability.
+5. For queue-backed limits, senders can release tokens back to the queue to signal max_queue availability.
 
 ## Installation
 

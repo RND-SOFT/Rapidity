@@ -7,8 +7,8 @@ module Rapidity
   
   module Share
     autoload :Base, 'rapidity/share/base'
-    autoload :Generator, 'rapidity/share/generator'
-    autoload :Transmitter, 'rapidity/share/transmitter'
+    autoload :Producer, 'rapidity/share/producer'
+    autoload :Sender, 'rapidity/share/sender'
     autoload :Limit, 'rapidity/share/misc'
   end
 end

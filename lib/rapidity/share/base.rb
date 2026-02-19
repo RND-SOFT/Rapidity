@@ -25,8 +25,8 @@ module Rapidity
         end
 
         response = response.each_slice(2).to_h
-        if response["count"] > 0
-          response["limits"].each do |data|
+        if response["count"].to_i > 0
+          response["limits"].map do |data|
             build_limit(data)
           end
         else
@@ -109,7 +109,7 @@ module Rapidity
               yield r
             end
           end
-        rescue  Redis::CannotConnectError, Redis::TimeoutError, Errno::ECONNREFUSED => e
+        rescue Redis::CannotConnectError, Redis::TimeoutError, Errno::ECONNREFUSED => e
           retries_count += 1
           if retries_count < max_retries
             @logger.warn("Redis connection error: #{e.message}.")
@@ -117,8 +117,7 @@ module Rapidity
             retry
           else
             @logger.error("Redis is not available: #{e.message}")
-            # raise e
-            ["result", "false", "error", e.message]
+            raise e
           end
         rescue ::Redis::CommandError => e
           if e.message.include?('NOSCRIPT')
@@ -131,8 +130,7 @@ module Rapidity
               retry
             end
           end
-          # raise e
-          ["result", "false", "error", e.message]
+          raise e
         end
       end
 

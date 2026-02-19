@@ -2,19 +2,19 @@ module Rapidity
   module Share
     class Limit
 
-      attr_reader :name, :max_tokens, :tokens, :interval, :max_queue, :queue, :last_used, :rate
+      attr_reader :name, :max_tokens, :tokens, :interval, :max_queue, :semaphore, :last_used, :rate
 
       def initialize(name, max_tokens, interval,
                      namespace: nil, tokens: nil,
                      last_used: nil, rate: nil,
-                     queue: nil, max_queue: nil, 
+                     semaphore: nil, max_queue: nil, 
                      validate: true)
         @name = namespace.to_s.empty? ? name : [namespace, name].join(':')
         @namespace = namespace.to_s
         @max_tokens = max_tokens.to_i
         @tokens = tokens.to_i
         @interval = interval.to_i
-        @queue = queue.to_i
+        @semaphore = semaphore.to_i
         @max_queue = max_queue.to_i
         @last_used = last_used.to_i
         @rate = rate.to_i == 0 ? @max_tokens.to_f/@interval.to_f : rate

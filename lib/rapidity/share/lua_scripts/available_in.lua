@@ -60,8 +60,7 @@ function Limit:available_in(tokens_needed, current_time)
     return 0
   else
     local deficit_tokens = tokens_needed - self.tokens
-    local deficit_time_per_token = math.floor(1/self.rate)
-    local time_needed = deficit_time_per_token * deficit_tokens
+    local time_needed = math.ceil(deficit_tokens / self.rate)
     return time_needed
   end
 end

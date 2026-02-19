@@ -1,6 +1,6 @@
 module Rapidity
   module Share
-    class Transmitter < Base
+    class Sender < Base
 
       LUA_SCRIPTS = [:acquire, :release_queue, :available_in]
 
@@ -20,6 +20,9 @@ module Rapidity
       # @return [OpenStruct] result of the acquisition attempt
       # @note If any limit cannot provide the requested tokens, the entire operation fails
       def acquire(list_limits_or_str, tokens: 1, ttl: @ttl)
+        raise ArgumentError, "limits list is empty" if list_limits_or_str.empty?
+        raise ArgumentError, "tokens must be positive" unless tokens > 0
+
         limits = if list_limits_or_str[0].is_a?(Limit)
           list_limits_or_str.map {|it| it.name}
         else
@@ -44,6 +47,9 @@ module Rapidity
       # @return [OpenStruct] availability information including wait times
       # @note Returns the maximum wait time among all limits (bottleneck)
       def available_in(list_limits_or_str, tokens: 1, ttl: @ttl)
+        raise ArgumentError, "limits list is empty" if list_limits_or_str.empty?
+        raise ArgumentError, "tokens must be positive" unless tokens > 0
+
         limits = if list_limits_or_str[0].is_a?(Limit)
           list_limits_or_str.map {|it| it.name}
         else
@@ -57,9 +63,9 @@ module Rapidity
         handle_response(response)
       end
 
-      # Releases tokens back to the limit queue
+      # Releases tokens back to the limit semaphore
       #
-      # Returns previously acquired tokens to the queue, making them available
+      # Returns previously acquired tokens to the semaphore, making them available
       # for generetor.
       #
       # @param limit_or_str [Limit, String] limit object or its name
