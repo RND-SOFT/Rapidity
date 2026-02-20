@@ -48,8 +48,7 @@ RSpec.describe Rapidity::Share::Sender do
       end
 
       it 'zero' do
-        response = sender.acquire([limit.name], tokens: 0)
-        expect(response.success).to eq(false)
+        expect{sender.acquire([limit.name], tokens: 0)}.to raise_error(ArgumentError)
         
         info = producer.info(limit.name)
         expect(info.limit.tokens).to eq(1)

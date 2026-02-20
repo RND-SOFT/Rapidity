@@ -37,22 +37,16 @@ RSpec.describe Rapidity::Share::Base do
       result = base.info(limit)
       expect(result.success).to eq(true)
 
-      response = base.wrap_executed_script do |r|
-        pool.with do |conn|
-          conn.with do |r|
-            r.script(:flush, 'SYNC')
-            r.evalsha(base.instance_variable_get('@lua_info'), keys: ['42'])
+      expect do
+        base.wrap_executed_script do |r|
+          pool.with do |conn|
+            conn.with do |r|
+              r.script(:flush, 'SYNC')
+              r.evalsha(base.instance_variable_get('@lua_info'), keys: ['42'])
+            end
           end
         end
-      end
-
-      response = response.each_slice(2).to_h
-      success = response["result"] == "true"
-      response = OpenStruct.new(
-            success: success,
-            **response
-          )
-      expect(response.success).to eq(false)
+      end.to raise_error
     end
   end
 end
