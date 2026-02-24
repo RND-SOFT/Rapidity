@@ -11,7 +11,7 @@ module Rapidity
         @ttl = ttl
         @logger = logger || Logger.new(STDOUT)
         @logger.level = Logger::DEBUG
-        load_redis_scripts
+        # load_redis_scripts
       end
 
       # Returns a list of limits matching the pattern
@@ -126,6 +126,18 @@ module Rapidity
               @logger.warn("Get not script error from redis: #{e.message}. Reload lua scripts")
               # существует вероятность что сервер мог быть перезагружен
               # и нужно заново загрузить скрипты
+              load_redis_scripts
+              retry
+            end
+          end
+          raise e
+        rescue TypeError => e
+          if e.message.include?('Unsupported command argument type: NilClass')
+            retries_count += 1
+            if retries_count < max_retries
+              @logger.info("First time load lua scripts")
+              # При первом запуске instance_variable с lua скриптами не инициализированы, при этом
+              # evalsha райзит эту ошибку. Загружаем скрипты в redis
               load_redis_scripts
               retry
             end

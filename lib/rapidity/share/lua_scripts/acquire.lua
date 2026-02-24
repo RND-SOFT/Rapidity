@@ -1,4 +1,8 @@
+-- this is required to be able to use TIME and writes; basically it lifts the script into IO
 redis.replicate_commands()
+
+-- args: keys, requested, key_ttl
+-- returns: keys - acquired limits names list
 
 local keys = KEYS
 local requested = tonumber(ARGV[1]) or 0
@@ -133,7 +137,7 @@ local function process_all_limits(keys, requested, current_time)
   
   return {
     "result", "true",
-    "key", "key"
+    "keys", keys
   }
 end
 

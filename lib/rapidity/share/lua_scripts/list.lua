@@ -1,3 +1,7 @@
+
+-- args: namespace_pattern, max_keys
+-- returns: info - a flat list of limit hashes (key-value pairs), with the limit name as the first element
+
 local namespace_pattern = ARGV[1] or '*'
 local max_keys = tonumber(ARGV[2]) or 1000
 

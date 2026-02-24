@@ -1,4 +1,8 @@
+-- this is required to be able to use TIME and writes; basically it lifts the script into IO
 redis.replicate_commands()
+
+-- args: key
+-- returns: key - deleted key
 
 local key = KEYS[1]
 

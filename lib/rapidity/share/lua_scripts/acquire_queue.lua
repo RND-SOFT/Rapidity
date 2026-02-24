@@ -1,4 +1,10 @@
+-- this is required to be able to use TIME and writes; basically it lifts the script into IO
 redis.replicate_commands()
+
+
+-- args: key, requested, key_ttl
+-- returns: tokens - obtained queue size
+-- returns: semaphore - amount queue size
 
 local key = KEYS[1]
 local requested = tonumber(ARGV[1]) or 0
