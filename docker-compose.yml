@@ -6,18 +6,6 @@ services:
   redis:
     image: redis
     
-  test-3.0:
-    build:
-      context: .
-      args:
-        RUBY_VERSION: 3.0
-    image: rapidity-tests:3.0
-    working_dir: /home/app
-    environment:
-      REDIS_URL: redis://redis:6379
-    depends_on:
-      - redis
-
   test-3.2:
     build:
       context: .
@@ -26,6 +14,19 @@ services:
     image: rapidity-tests:3.2
     working_dir: /home/app
     environment:
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      - redis
+
+  test-3.4:
+    build:
+      context: .
+      args:
+        RUBY_VERSION: 3.4
+    image: rapidity-tests:3.4
+    working_dir: /home/app
+    environment:
+      COVERAGE: ${COVERAGE}
       REDIS_URL: redis://redis:6379
     depends_on:
       - redis

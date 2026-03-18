@@ -30,15 +30,15 @@ stages:
       junit:
         - junits-${CASE}/rspec.xml
   
-ruby-3.0:
-  extends: .test
-  variables:
-    CASE: '3.0'
-
 ruby-3.2:
   extends: .test
   variables:
     CASE: '3.2'
+
+ruby-3.4:
+  extends: .test
+  variables:
+    CASE: '3.4'
 
 
 build:
