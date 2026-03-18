@@ -83,7 +83,11 @@ function Limit:update(current_time)
   
   local tokens_to_add = math.floor(time_passed * self.rate)
   self.tokens = math.min(self.tokens + tokens_to_add, self.max_tokens)
-  self.last_used = current_time
+  
+  if tokens_to_add > 0 then
+    local time_consumed = tokens_to_add / self.rate
+    self.last_used = math.min(self.last_used + time_consumed, current_time)
+  end
 
   return self
 end

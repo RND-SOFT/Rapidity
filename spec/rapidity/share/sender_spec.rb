@@ -154,6 +154,15 @@ RSpec.describe Rapidity::Share::Sender do
 
         new_last_used = producer.info(limit.name).limit.last_used.to_i
         
+        expect(new_last_used).to eq initial_last_used
+
+        sleep(5)
+
+        response = sender.acquire([limit.name], tokens: 2)
+        expect(response.success).to eq(true)
+
+        new_last_used = producer.info(limit.name).limit.last_used.to_i
+        
         expect(new_last_used).to be > initial_last_used
       end
     end

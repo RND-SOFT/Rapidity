@@ -80,12 +80,13 @@ function Limit:update(current_time)
   local time_passed = current_time - self.last_used
   if time_passed <= 0 then return self end
   
-  -- Рассчитываем, сколько токенов накопилось с момента последнего запроса
   local tokens_to_add = math.floor(time_passed * self.rate)
-  
-  -- Токенов не может быть больше, чем размер корзины (max_tokens)
   self.tokens = math.min(self.tokens + tokens_to_add, self.max_tokens)
-  self.last_used = current_time
+  
+  if tokens_to_add > 0 then
+    local time_consumed = tokens_to_add / self.rate
+    self.last_used = math.min(self.last_used + time_consumed, current_time)
+  end
 
   return self
 end
