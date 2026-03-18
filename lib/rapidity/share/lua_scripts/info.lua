@@ -1,21 +1,37 @@
--- this is required to be able to use TIME and writes; basically it lifts the script into IO
+-------------------------------------------------------------------------------
+-- СПЕЦИФИКАЦИЯ ФАЙЛА
+-------------------------------------------------------------------------------
+-- Этот файл отвечает за получение полной информации о лимите.
+-- 
+-- Описание логики работы:
+-- 1. Скрипт принимает ключ лимита и время его жизни (TTL).
+-- 2. Если ключ существует, возвращает все его поля (HGETALL).
+-- 3. При успешном чтении продлевает время жизни ключа (EXPIRE ... GT),
+--    чтобы предотвратить удаление активно используемых данных.
+-------------------------------------------------------------------------------
+
+-- Указываем Redis реплицировать сами эффекты от скрипта, а не сам скрипт.
 redis.replicate_commands()
 
--- args: key, key_ttl
--- returns: info - a flat list of limit hashes (key-value pairs), with the limit name as the first element
-
-local key = KEYS[1]
+-- Входящие аргументы:
+-- KEYS[1] : ключ лимита в Redis
+-- ARGV[1] : время жизни ключа в секундах (key_ttl)
+local limit_key = KEYS[1]
 local key_ttl = tonumber(ARGV[1]) or 0
 
-local function info(key, key_ttl)
-  local exists = redis.call("EXISTS", key)
+local function info()
+  -- Оптимизация: получаем все данные сразу.
+  -- Если HGETALL возвращает пустой массив (длина 0), значит ключа нет
+  local data = redis.call("HGETALL", limit_key)
 
-  if exists ~= 1 then
+  if #data == 0 then
     return {"result", "false", "error", "key_not_found"}
   end
 
-  redis.call("EXPIRE", key, key_ttl, "GT")
-  return {"result", "true", "info", {key, redis.call("HGETALL", key)}}
+  -- Продлеваем жизнь ключу (GT - только если новый TTL больше текущего остатка)
+  redis.call("EXPIRE", limit_key, key_ttl, "GT")
+  
+  return {"result", "true", "info", {limit_key, data}}
 end
 
-return info(key, key_ttl)
+return info()

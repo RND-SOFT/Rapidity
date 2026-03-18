@@ -1,24 +1,50 @@
--- this is required to be able to use TIME and writes; basically it lifts the script into IO
+-------------------------------------------------------------------------------
+-- СПЕЦИФИКАЦИЯ ФАЙЛА
+-------------------------------------------------------------------------------
+-- Этот файл отвечает за проверку текущего состояния очереди (семафора) лимита.
+-- 
+-- Механизм Feedback-Driven Flow Control:
+-- Метод check_queue позволяет продюсеру узнать, сколько свободных мест осталось 
+-- в очереди (семафоре), не занимая их. Это полезно для мониторинга или принятия 
+-- решения о том, стоит ли вообще пытаться брать задачи в работу.
+--
+-- Описание функционала файла check_queue.lua
+-- 1. Скрипт принимает ключ лимита и время его жизни (TTL).
+-- 2. Пытается получить текущее значение поля "semaphore" напрямую.
+-- 3. Если ключ отсутствует в Redis, возвращает ошибку "key_not_found".
+-- 4. Обновляет время жизни ключа (EXPIRE), если новый TTL больше текущего.
+-- 5. Возвращает текущее количество доступных мест в семафоре.
+-------------------------------------------------------------------------------
+
+-- Указываем Redis реплицировать сами эффекты от скрипта, а не сам скрипт.
 redis.replicate_commands()
 
--- args: key, key_ttl
--- returns: semaphore - queue available length
-
-local key = KEYS[1]
+-- Входящие аргументы:
+-- KEYS[1] : ключ лимита в Redis
+-- ARGV[1] : время жизни ключа в секундах (key_ttl)
+local limit_key = KEYS[1]
 local key_ttl = tonumber(ARGV[1]) or 0
 
-local function check_queue(key, key_ttl)
-  local exists = redis.call("EXISTS", key)
+local function check_queue()
+  -- Оптимизация: получаем значение семафора одним запросом.
+  -- Если ключа (или поля) нет, HGET вернет nil/false.
+  local semaphore_str = redis.call("HGET", limit_key, "semaphore")
 
-  if exists ~= 1 then
+  if not semaphore_str then
     return {"result", "false", "error", "key_not_found"}
   end
 
-  local semaphore = tonumber(redis.call("HGET", key, "semaphore")) or 0
+  local semaphore = tonumber(semaphore_str) or 0
 
-  redis.call("EXPIRE", key, key_ttl, "GT")
+  -- Продлеваем жизнь ключу (GT - только если новый TTL больше текущего остатка),
+  -- так как идет активная проверка лимита.
+  redis.call("EXPIRE", limit_key, key_ttl, "GT")
   
-  return {"result", "true", "semaphore", semaphore}
+  -- Возвращаем успешный результат и текущее доступное количество мест
+  return {
+    "result", "true", 
+    "semaphore", semaphore
+  }
 end
 
-return check_queue(key, key_ttl)
+return check_queue()

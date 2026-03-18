@@ -21,6 +21,7 @@ Gem::Specification.new do |spec|
   spec.add_runtime_dependency 'activesupport'
   spec.add_runtime_dependency 'connection_pool'
   spec.add_runtime_dependency 'redis'
+  spec.add_runtime_dependency 'ostruct'
 
   spec.add_development_dependency 'bundler'
   spec.add_development_dependency 'rspec'

@@ -20,6 +20,8 @@ module Rapidity
       # @return [OpenStruct] result of the acquisition attempt
       # @note If any limit cannot provide the requested tokens, the entire operation fails
       def acquire(list_limits_or_str, tokens: 1, ttl: @ttl)
+        list_limits_or_str = [list_limits_or_str] unless list_limits_or_str.is_a?(Array)
+        
         raise ArgumentError, "limits list is empty" if list_limits_or_str.empty?
         raise ArgumentError, "tokens must be positive" unless tokens > 0
 
@@ -63,18 +65,29 @@ module Rapidity
         handle_response(response)
       end
 
-      # Releases tokens back to the limit semaphore
+      # Releases tokens back to the limit semaphore for `Feedback-Driven Flow Control` 
       #
       # Returns previously acquired tokens to the semaphore, making them available
       # for generetor.
       #
-      # @param limit_or_str [Limit, String] limit object or its name
+      # @param list_limits_or_str [Array<Limit>, Array<String>] array of limit objects or limit names
       # @param count [Integer] number of tokens to release
       # @param ttl [Integer] time-to-live for the released tokens
       # @return [OpenStruct] result of the release operation
-      def release_queue(limit_or_str, count: 1, ttl: @ttl)
+      def release_queue(list_limits_or_str, count: 1, ttl: @ttl)
+        list_limits_or_str = [list_limits_or_str] unless list_limits_or_str.is_a?(Array)
+        
+        raise ArgumentError, "limits list is empty" if list_limits_or_str.empty?
+        raise ArgumentError, "count must be positive" unless count > 0
+
+        limits = if list_limits_or_str[0].is_a?(Limit)
+          list_limits_or_str.map {|it| it.name}
+        else
+          list_limits_or_str
+        end
+
         response = wrap_executed_script do |r|
-          r.evalsha(@lua_release_queue, keys: [get_name(limit_or_str)], argv: [count, ttl])
+          r.evalsha(@lua_release_queue, keys: [*limits], argv: [count, ttl])
         end
 
         handle_response(response)

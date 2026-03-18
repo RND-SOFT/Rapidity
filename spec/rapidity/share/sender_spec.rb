@@ -175,6 +175,35 @@ RSpec.describe Rapidity::Share::Sender do
       end
     end
 
+    context 'argument parsing' do
+      let!(:limit){Rapidity::Share::Limit.new('limit', 1, 60, namespace: namespace)}
+      
+      before do
+        producer.init(limit)
+      end
+
+      context 'when passing arguments as an array of strings' do
+        it 'successfully extracts limit names' do
+          response = sender.acquire([limit.name], tokens: 1)
+          expect(response.success).to eq(true)
+        end
+      end
+
+      context 'when passing a single limit object' do
+        it 'wraps it into an array and processes successfully' do
+          response = sender.acquire(limit, tokens: 1)
+          expect(response.success).to eq(true)
+        end
+      end
+
+      context 'when passing a single limit string' do
+        it 'wraps it into an array and processes successfully' do
+          response = sender.acquire(limit.name, tokens: 1)
+          expect(response.success).to eq(true)
+        end
+      end
+    end
+
     context 'exceptions' do
       before do
         producer.init(Rapidity::Share::Limit.new('limit_1', 1, 60, namespace: namespace))
@@ -274,30 +303,65 @@ RSpec.describe Rapidity::Share::Sender do
   
   describe '#release_queue' do
     let!(:limit){Rapidity::Share::Limit.new('limit', 10, 60, max_queue: 10, namespace: namespace)}
+    let!(:limit2){Rapidity::Share::Limit.new('limit2', 10, 60, max_queue: 5, namespace: namespace)}
       
     before do
       producer.init(limit)
+      producer.init(limit2)
+    end
+
+    context 'argument parsing' do
+      before do
+        producer.acquire_queue([limit, limit2], count: 2)
+      end
+
+      context 'when passing arguments as an array of strings' do
+        it 'successfully extracts limit names' do
+          response = sender.release_queue([limit.name, limit2.name], count: 1)
+          expect(response.success).to eq(true)
+        end
+      end
+
+      context 'when passing a single limit object' do
+        it 'wraps it into an array and processes successfully' do
+          response = sender.release_queue(limit, count: 1)
+          expect(response.success).to eq(true)
+        end
+      end
+
+      context 'when passing a single limit string' do
+        it 'wraps it into an array and processes successfully' do
+          response = sender.release_queue(limit.name, count: 1)
+          expect(response.success).to eq(true)
+        end
+      end
     end
 
     it 'release' do
-      response = producer.acquire_queue(limit, count: 2)
+      response = producer.acquire_queue([limit, limit2], count: 2)
       expect(response.success).to eq(true)
       
       info = sender.info(limit)
       expect(info.limit.semaphore).to eq(8)
 
-      response = sender.release_queue(limit, count: 2)
+      info2 = sender.info(limit2)
+      expect(info2.limit.semaphore).to eq(3)
+
+      response = sender.release_queue([limit, limit2], count: 2)
       expect(response.success).to eq(true)
 
       info = sender.info(limit)
       expect(info.limit.semaphore).to eq(10)
+
+      info2 = sender.info(limit2)
+      expect(info2.limit.semaphore).to eq(5)
     end
 
     it 'release less then max' do
       info = sender.info(limit)
       expect(info.limit.semaphore).to eq(10)
 
-      response = sender.release_queue(limit, count: 10)
+      response = sender.release_queue([limit], count: 10)
       expect(response.success).to eq(true)
 
       info = sender.info(limit)

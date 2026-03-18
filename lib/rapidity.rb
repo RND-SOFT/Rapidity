@@ -9,7 +9,7 @@ module Rapidity
     autoload :Base, 'rapidity/share/base'
     autoload :Producer, 'rapidity/share/producer'
     autoload :Sender, 'rapidity/share/sender'
-    autoload :Limit, 'rapidity/share/misc'
+    autoload :Limit, 'rapidity/share/limit'
   end
 end
 

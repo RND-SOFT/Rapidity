@@ -19,8 +19,17 @@ RSpec.describe Rapidity::Share::Producer do
     pool.with { |r| r.flushdb }
   end
 
-  it '#init' do
-    expect(producer.init(limit)).to be true
+  describe '#init' do
+    it 'creates a new limit' do
+      expect(producer.init(limit)).to be true
+    end
+  end
+
+  describe '#update' do
+    it 'calls init under the hood' do
+      expect(producer.update(limit)).to be true
+      expect(producer.info(limit).limit.tokens).to eq(limit.max_tokens)
+    end
   end
 
   describe '#list' do
@@ -56,6 +65,40 @@ RSpec.describe Rapidity::Share::Producer do
     end
   end
 
+  describe '#acquire_queue' do
+    let(:limit_1) { Rapidity::Share::Limit.new('limit_1', 20, 100, max_queue: 20, namespace: namespace) }
+    let(:limit_2) { Rapidity::Share::Limit.new('limit_2', 20, 100, max_queue: 20, namespace: namespace) }
+
+    before do
+      producer.init(limit_1)
+      producer.init(limit_2)
+    end
+
+    context 'when passing arguments as an array of strings' do
+      it 'successfully extracts limit names' do
+        result = producer.acquire_queue([limit_1.name, limit_2.name], count: 5)
+        expect(result.success).to eq(true)
+        expect(result.tokens).to eq(5)
+      end
+    end
+
+    context 'when passing a single limit object' do
+      it 'wraps it into an array and processes successfully' do
+        result = producer.acquire_queue(limit_1, count: 5)
+        expect(result.success).to eq(true)
+        expect(result.tokens).to eq(5)
+      end
+    end
+
+    context 'when passing a single limit string' do
+      it 'wraps it into an array and processes successfully' do
+        result = producer.acquire_queue(limit_1.name, count: 5)
+        expect(result.success).to eq(true)
+        expect(result.tokens).to eq(5)
+      end
+    end
+  end
+
   context "base" do
     let (:limit) {Rapidity::Share::Limit.new('limit_1', 20, 100, max_queue: 20, namespace: namespace)}
     
@@ -65,7 +108,7 @@ RSpec.describe Rapidity::Share::Producer do
         info = producer.info(limit)
         expect(info.limit.tokens).to eq(20)
 
-        result = producer.acquire_queue(limit, count: 5)
+        result = producer.acquire_queue([limit], count: 5)
         expect(result.success).to eq(true)
         expect(result.tokens).to eq(5)
         info = producer.info(limit)

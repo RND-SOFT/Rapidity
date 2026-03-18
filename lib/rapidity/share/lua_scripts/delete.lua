@@ -1,20 +1,31 @@
--- this is required to be able to use TIME and writes; basically it lifts the script into IO
+-------------------------------------------------------------------------------
+-- СПЕЦИФИКАЦИЯ ФАЙЛА
+-------------------------------------------------------------------------------
+-- Этот файл отвечает за удаление лимита из Redis.
+-- 
+-- Описание логики работы:
+-- 1. Скрипт принимает ключ лимита (KEYS[1]).
+-- 2. Если ключ существует, удаляет его с помощью команды DEL.
+-- 3. Возвращает статус операции.
+-------------------------------------------------------------------------------
+
+-- Указываем Redis реплицировать сами эффекты от скрипта, а не сам скрипт.
 redis.replicate_commands()
 
--- args: key
--- returns: key - deleted key
+-- Входящие аргументы:
+-- KEYS[1] : ключ лимита в Redis
+local limit_key = KEYS[1]
 
-local key = KEYS[1]
-
-local function delete(key)
-  local exists = redis.call("EXISTS", key)
+local function delete()
+  -- Оптимизация: команда DEL сама возвращает количество удаленных ключей.
+  -- Если вернулся 0, значит ключа не было. Мы можем обойтись без EXISTS.
+  local deleted_count = redis.call("DEL", limit_key)
   
-  if exists ~= 1 then
+  if deleted_count == 0 then
     return {"result", "false", "error", "key_not_found"}
   end
 
-  redis.call("DEL", key)
   return {"result", "true"}
 end
 
-return delete(key)
+return delete()

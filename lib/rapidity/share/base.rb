@@ -1,3 +1,5 @@
+require 'ostruct'
+
 module Rapidity
   module Share
     class Base

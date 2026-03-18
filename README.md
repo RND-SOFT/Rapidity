@@ -96,8 +96,16 @@ flowchart LR
     T-- limited request -->E
 ```
 
-### Optional Queue Management with Feedback Loop
-Beyond basic rate limiting, the Share module offers **optional queue management capabilities** that enable sophisticated **feedback-driven flow control**. This feature allows systems to handle temporary load spikes more gracefully while maintaining communication between producers and consumers.
+### Base scenario
+
+`Producer` ONLY creates limits, and send messages to the `Sender`. `Sender` actually use limits to achieve overall Rate Limiting. 
+
+### Optinal **Feedback-Driven Flow Control** scenario
+
+Beyond basic rate limiting, the Share module offers **optional queue management capabilities** that enable sophisticated **Feedback-Driven Flow Control**. This feature allows systems to handle temporary load spikes more gracefully while maintaining communication between producers and consumers.
+
+In this scenario, `Producer` additionally checks the optional `max_queue` attribute in the limit to understand whether it makes sense to send requests to `Sender` or whether it is already loaded with previous requests. 
+`Producer` MUST obtain semaphore `max_queue` on limites, then `Sender` MUST release semaphore `max_queue` after actual send request.
 
 ### Workflow with Code Examples
 1. Initializing Limits and Optional Queues (Producer Side)

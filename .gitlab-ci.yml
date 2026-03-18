@@ -10,7 +10,6 @@ stages:
     COMPOSE_PROJECT_NAME: rapidity_${CI_PIPELINE_ID}_${CI_JOB_ID}
     GIT_BRANCH: ${CI_COMMIT_REF_NAME}
     GIT_COMMIT: ${CI_COMMIT_SHA}
-    COVERAGE: "true"
   before_script:
     - docker-compose build --force-rm --pull test-${CASE}
     - docker-compose up --force-recreate -t 1 --remove-orphans -d test-${CASE}
@@ -20,6 +19,7 @@ stages:
     - docker-compose exec -T test-${CASE} bundle exec rspec
     - docker cp $(docker-compose ps -q test-${CASE}):/home/app/coverage/. ./coverage-${CASE}
     - docker cp $(docker-compose ps -q test-${CASE}):/home/app/rspec.xml ./junits-${CASE}/rspec.xml
+  coverage: '/\(\d+.\d+\%\) covered/'
   after_script:
     - docker-compose down -v --remove-orphans
   artifacts:

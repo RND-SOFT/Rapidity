@@ -14,7 +14,6 @@ services:
     image: rapidity-tests:3.0
     working_dir: /home/app
     environment:
-      COVERAGE: ${COVERAGE}
       REDIS_URL: redis://redis:6379
     depends_on:
       - redis
@@ -27,7 +26,6 @@ services:
     image: rapidity-tests:3.2
     working_dir: /home/app
     environment:
-      COVERAGE: ${COVERAGE}
       REDIS_URL: redis://redis:6379
     depends_on:
       - redis

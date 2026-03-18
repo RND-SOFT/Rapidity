@@ -1,21 +1,20 @@
 require 'bundler/setup'
 ENV['RAILS_ENV'] ||= 'test'
 
-if ENV['COVERAGE']
-  require 'simplecov'
-  require 'simplecov-console'
-  require 'simplecov-cobertura'
+require 'simplecov'
+require 'simplecov-console'
+require 'simplecov-cobertura'
 
-  SimpleCov.start do
-    SimpleCov.formatter = SimpleCov::Formatter::MultiFormatter.new([
+SimpleCov.start do
+  SimpleCov.formatter = SimpleCov::Formatter::MultiFormatter.new([
                                                                  SimpleCov::Formatter::HTMLFormatter, # for gitlab
                                                                  SimpleCov::Formatter::Console, # for developers
                                                                  SimpleCov::Formatter::CoberturaFormatter
                                                                ])
-    add_filter '/spec/'
-    track_files 'lib/**/*.rb'
-  end
+  add_filter '/spec/'
+  track_files 'lib/**/*.rb'
 end
+
 
 require 'rapidity'
 require 'securerandom'
