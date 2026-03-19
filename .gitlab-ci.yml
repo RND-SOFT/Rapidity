@@ -4,36 +4,41 @@ stages:
   - deploy
 
 .test:
-  image: rnds/ruby:2.5-test
+  image: rnds/ruby:3.0-test
   stage: tests
   variables:
     COMPOSE_PROJECT_NAME: rapidity_${CI_PIPELINE_ID}_${CI_JOB_ID}
     GIT_BRANCH: ${CI_COMMIT_REF_NAME}
     GIT_COMMIT: ${CI_COMMIT_SHA}
-  script:
+  before_script:
     - docker-compose build --force-rm --pull test-${CASE}
     - docker-compose up --force-recreate -t 1 --remove-orphans -d test-${CASE}
-    - docker-compose exec -T test-${CASE} bundle exec rspec | tee .coverage
-    - docker-compose exec -T test-${CASE} cat rspec.xml > rspec-${CASE}.xml
+    - mkdir -p ./coverage-${CASE}
+    - mkdir -p ./junits-${CASE}
+  script:
+    - docker-compose exec -T test-${CASE} bundle exec rspec
+    - docker cp $(docker-compose ps -q test-${CASE}):/home/app/coverage/. ./coverage-${CASE}
+    - docker cp $(docker-compose ps -q test-${CASE}):/home/app/rspec.xml ./junits-${CASE}/rspec.xml
+  coverage: '/\(\d+.\d+\%\) covered/'
   after_script:
     - docker-compose down -v --remove-orphans
-  coverage: '/\(\d+.\d+\%\) covered/'
   artifacts:
     reports:
-      junit: rspec*.xml
-    name: "coverage"
-    paths:
-      - .coverage
-
-ruby-2.7:
+      coverage_report:
+        coverage_format: cobertura
+        path: coverage-${CASE}/coverage.xml
+      junit:
+        - junits-${CASE}/rspec.xml
+  
+ruby-3.2:
   extends: .test
   variables:
-    CASE: '2.7'
+    CASE: '3.2'
 
-ruby-3.0:
+ruby-3.4:
   extends: .test
   variables:
-    CASE: '3.0'
+    CASE: '3.4'
 
 
 build:
@@ -56,7 +61,7 @@ build:
     - master
 
 pushgem:
-  image: rnds/ruby:2.5-test
+  image: rnds/ruby:3.0-test
   stage: deploy
   script:
     - mkdir -p ~/.gem
@@ -68,7 +73,7 @@ pushgem:
     - master
 
 badges:
-  image: rnds/ruby:2.5-test
+  image: rnds/ruby:3.0-test
   stage: deploy
   allow_failure: true
   variables:

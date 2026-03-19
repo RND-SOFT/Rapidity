@@ -21,9 +21,10 @@ Gem::Specification.new do |spec|
   spec.add_runtime_dependency 'activesupport'
   spec.add_runtime_dependency 'connection_pool'
   spec.add_runtime_dependency 'redis'
+  spec.add_runtime_dependency 'ostruct'
 
-  spec.add_development_dependency 'bundler', '~> 2.0'
-  spec.add_development_dependency 'rspec', '~> 3.0'
+  spec.add_development_dependency 'bundler'
+  spec.add_development_dependency 'rspec'
   spec.add_development_dependency 'timeouter'
 
   spec.add_development_dependency 'awesome_print'
@@ -35,5 +36,6 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency 'shoulda-matchers'
   spec.add_development_dependency 'simplecov'
   spec.add_development_dependency 'simplecov-console'
+  spec.add_development_dependency 'simplecov-cobertura'
 end
 
