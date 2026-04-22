@@ -100,8 +100,9 @@ function Limit:available_in(needed)
   end
   
   local deficit_tokens = needed - self.tokens
+  local time_passed = current_time - self.last_used
   -- Округляем вверх (math.ceil), так как нам нужно дождаться появления ЦЕЛОГО токена
-  return math.ceil(deficit_tokens / self.rate)
+  return math.ceil(deficit_tokens / self.rate) - time_passed
 end
 
 -------------------------------------------------------------------------------
