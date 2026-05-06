@@ -8,12 +8,15 @@ module Rapidity
       BASE_SCRIPTS = [:list, :info, :reset, :delete]
       DEFAULT_KEY_TTL = 6000
 
+      MX = Monitor.new
+
       def initialize(pool, ttl: DEFAULT_KEY_TTL.to_i, logger: nil)
         @pool = pool
         @ttl = ttl
         @logger = logger || Logger.new(STDOUT)
         @logger.level = Logger::DEBUG
         # load_redis_scripts
+        restore_lua_hashes
       end
 
       # Returns a list of limits matching the pattern
@@ -154,14 +157,44 @@ module Rapidity
       #
       # @return [void]
       def load_redis_scripts
-        @pool.with do |conn|
-          (BASE_SCRIPTS + self.class::LUA_SCRIPTS).each do |script|
-            instance_variable_set("@lua_#{script}".to_sym,
-              conn.with {|r| r.script(:load, File.read(File.join(__dir__, 'lua_scripts', "#{script.to_s}.lua"))) }
-            )
+        cls = self.class
+        MX.synchronize do 
+          @pool.with do |conn|
+            list_lua_scripts.each do |script|
+              cls.instance_variable_set(lua_script_var(script),
+                conn.with {|r| r.script(:load, File.read(File.join(__dir__, 'lua_scripts', "#{script.to_s}.lua"))) }
+              )
+            end
           end
         end
+        restore_lua_hashes
       end
+
+      # Restore instance script hashes from class cache
+      def restore_lua_hashes
+        cls = self.class
+        list_lua_scripts.each do |script|
+          instance_variable_set(lua_script_var(script), cls.instance_variable_get(lua_script_var(script)))
+        end
+      end
+
+
+      # это для тестов чтобы проверить перезугрузку сриптов
+      def reset_lua_scripts
+        cls = self.class
+        list_lua_scripts.each do |script|
+          instance_variable_set(lua_script_var(script), nil)
+        end
+      end
+
+      def list_lua_scripts
+        (BASE_SCRIPTS + self.class::LUA_SCRIPTS)
+      end
+
+      def lua_script_var(script)
+        "@lua_#{script}".to_sym
+      end
+
 
     end
   end

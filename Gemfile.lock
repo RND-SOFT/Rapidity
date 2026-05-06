@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    rapidity (0.0.7)
+    rapidity (0.0.8)
       activesupport
       connection_pool
       ostruct
