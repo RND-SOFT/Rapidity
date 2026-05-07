@@ -36,9 +36,10 @@ local function check_queue()
 
   local semaphore = tonumber(semaphore_str) or 0
 
-  -- Продлеваем жизнь ключу (GT - только если новый TTL больше текущего остатка),
+  -- Продлеваем жизнь ключу
+  -- раньше был GT, но он только с версии 7 (GT - только если новый TTL больше текущего остатка)
   -- так как идет активная проверка лимита.
-  redis.call("EXPIRE", limit_key, key_ttl, "GT")
+  redis.call("EXPIRE", limit_key, key_ttl)
   
   -- Возвращаем успешный результат и текущее доступное количество мест
   return {

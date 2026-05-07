@@ -134,8 +134,9 @@ local function process_all_queues(limit_keys, req_tokens, ttl)
     limit:acquire(bottleneck_tokens)
     limit:save()
     
-    -- Продлеваем жизнь ключу (GT - только если новый TTL больше текущего остатка)
-    redis.call("EXPIRE", limit.key, ttl, "GT")
+    -- Продлеваем жизнь ключу
+    -- раньше был GT, но он только с версии 7 (GT - только если новый TTL больше текущего остатка)
+    redis.call("EXPIRE", limit.key, ttl)
   end
 
   -- Возвращаем успешный результат: сколько реально удалось захватить (tokens)

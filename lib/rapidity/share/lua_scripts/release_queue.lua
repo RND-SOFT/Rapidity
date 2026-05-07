@@ -120,8 +120,9 @@ local function process_all_queues(limit_keys, released_tokens, ttl)
       end
     end
 
-    -- Продлеваем жизнь ключу (GT - только если новый TTL больше текущего остатка)
-    redis.call("EXPIRE", limit.key, ttl, "GT")
+    -- Продлеваем жизнь ключу 
+    -- раньше был GT, но он только с версии 7 (GT - только если новый TTL больше текущего остатка)
+    redis.call("EXPIRE", limit.key, ttl)
   end
 
   -- Если ни у одного лимита очередь не включена, вернем 0

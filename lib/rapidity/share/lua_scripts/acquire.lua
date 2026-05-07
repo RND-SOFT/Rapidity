@@ -169,8 +169,8 @@ local function process_all_limits(limit_keys, requested, current_time)
     limit:save()
 
     -- Продлеваем жизнь ключу, чтобы он не удалился, если к нему активно обращаются.
-    -- "GT" обновляет TTL только если новый TTL больше текущего.
-    redis.call("EXPIRE", limit.key, key_ttl, "GT")
+    -- раньше был GT, но он только с версии 7 (GT - только если новый TTL больше текущего остатка)
+    redis.call("EXPIRE", limit.key, key_ttl)
   end
 
   return { "result", "true", "keys", limit_keys }

@@ -51,8 +51,9 @@ local function reset()
     "last_used", current_time
   )
 
-  -- Продлеваем жизнь ключу (GT - только если новый TTL больше текущего остатка)
-  redis.call("EXPIRE", limit_key, key_ttl, "GT")
+  -- Продлеваем жизнь ключу
+  -- раньше был GT, но он только с версии 7 (GT - только если новый TTL больше текущего остатка)
+  redis.call("EXPIRE", limit_key, key_ttl)
   
   -- Возвращаем успешный результат и обновленные данные
   return {"result", "true", "info", {limit_key, redis.call("HGETALL", limit_key)}}
