@@ -134,13 +134,23 @@ local function process_all_limits(limit_keys, requested, current_time)
   end
 
   local limits = {}
-
-  -- Фаза 1: Проверка всех лимитов (Read & Validate)
+  -- Фаза 1: Изменяем ttl для всех существующих ключей и сохраняем объекты лимитов для существующих
   for i = 1, #limit_keys do
     local key = limit_keys[i]
     local limit = Limit:new(key)
+    if limit.exists then
+      -- Продлеваем жизнь ключу, чтобы он не удалился, если к нему активно обращаются.
+      -- раньше был GT, но он только с версии 7 (GT - только если новый TTL больше текущего остатка)
+      redis.call("EXPIRE", limit.key, key_ttl)
+      table.insert(limits, limit)
+    end
+  end
 
-    if not limit.exists then
+  -- Фаза 2: Проверка всех лимитов (Read & Validate)
+  for i = 1, #limit_keys do
+    local key = limit_keys[i]
+    local limit = limits[i]
+    if not limit then
       return { "result", "false", "retryable", "false", "error", "key_not_found", "key", key }
     end
 
@@ -157,20 +167,14 @@ local function process_all_limits(limit_keys, requested, current_time)
         "key", key
       }
     end
-
-    table.insert(limits, limit)
   end
 
-  -- Фаза 2: Применение изменений (Write)
+  -- Фаза 3: Применение изменений (Write)
   -- Выполняется только если всем лимитам хватило токенов
   for i = 1, #limits do
     local limit = limits[i]
     limit:acquire(requested)
     limit:save()
-
-    -- Продлеваем жизнь ключу, чтобы он не удалился, если к нему активно обращаются.
-    -- раньше был GT, но он только с версии 7 (GT - только если новый TTL больше текущего остатка)
-    redis.call("EXPIRE", limit.key, key_ttl)
   end
 
   return { "result", "true", "keys", limit_keys }
