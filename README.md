@@ -17,7 +17,7 @@ Features:
 - free from race condition through LUA scripting
 - fast
 
-[Article(russian) about gem.](https://blog.rnds.pro/029-rapidity/?utm_source=github&utm_medium=repo&utm_campaign=rnds)
+[Article(russian) about gem.](https://blog.rnds.pro/030-rapidity/?utm_source=github&utm_medium=repo&utm_campaign=rnds)
 
 ## Usage
 
